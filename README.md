@@ -56,7 +56,7 @@ Once this has been done, `model` will have the following methods:
 
 ```js
 	model.get(); //Gets the current value of the model
-	model.set(new); //Sets & returns the value of the model
+	model.set(val); //Sets & returns the value of the model
 	model.listen(fun); //Sets up fun to be called whenever the model changes
 	model.alert(); //Calls all listening functions
 ```
