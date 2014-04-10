@@ -1,4 +1,228 @@
-FluidJS
+Fluid.js
+========
+
+Fluid.js is a new Model View Controler (MVC) designed to make it easier for
+webapps to have smooth transitions and animations.
+
+Why?
+----
+
+The animations and smooth transitions of native apps are one of the major
+factors that give them their fun, playful feel.  Webapps, in contrast,
+generally lack animations and have jarring, instantaneous transitions.  This
+is a major reason why webapps, even ones which are well designed and look
+beautiful in screen shots, still feel clunky and low-tech when you actually
+use them.
+
+This is totally unacceptable.  The WebKit team introduced CSS animations
+[7 years ago](https://www.webkit.org/blog/138/css-animation/).  These CSS
+features are actually perfectly desgined to smooth out transitions in
+webapps, and generally make animations easier.  Yet, these features are
+rarely used.  The reason has to do with the way that most of our webapps
+are rendered.
+
+Generally, when our models change, the MVC will discard all the stale content
+from the DOM, and replace it with fresh content.  While this certainly works,
+and is easy to think about from a programing POV, it also makes transitions
+incredibly difficult.  This is because the browser cannot smooth out the
+transition from old content to new when the old content is simply being
+replaced.  Instead, for CSS transitions to work, the old DOM content needs
+to be updated instead of replaced.
+
+The goal of this project is to build an MVC that works by updating content
+instead of replacing it, but is still just as easy to work with as an MVC
+which creates the content from scratch each time.
+
+Example
 =======
 
-Fluid.js is an MVC for webapps designs to give your apps the fluid, playful feel of a native app.
+Fluid.js is unfortunately very opaque about how it works.  You just kind of
+have to trust that the APIs do what they say and not worry about "how."  This
+is unfortunately necessary in order to hide the complexity of updating DOM
+elements instead of recreating them.
+
+Because of this complexity, we suggest that you look at [our example]()
+regularly when reading this document.
+
+Models
+======
+
+Models in Fluid.js are very minimal.  A new model is declared as follows:
+```js
+	var model = new Fluid.model(init);
+```
+
+Once this has been done, `model` will have the following methods:
+
+```js
+	model.get(); //Gets the current value of the model
+	model.set(new); //Sets & returns the value of the model
+	model.listen(fun); //Sets up fun to be called whenever the model changes
+	model.alert(); //Calls all listening functions
+```
+
+Boring.  Simple.  Classic.
+
+Templating
+==========
+
+Fluid.js is tighly coupled to a templating engine.  The reason for this is
+that more so than other MVCs Fluid.js needs to really understand how a
+template works so that in can update the produced dynamically instead of
+having to re-run the template from scratch.  Additionally, the templating
+language for Fluid.js needs to be able to express concepts like child views
+instead of just raw HTML injections.  Finally, Fuild.js needs to have explict
+and limited syntax in its templating language so that content can be quickly
+updated.
+
+In that vain, there are four ways to inject values/views in Fluid.js'
+templating language:
+
+1.	`<tag attr={{varName}}>`
+
+	The above will link the attribute `attr` with the variable `varName`
+
+2.	`<tag>{{varName}}</tag>`
+
+	The above will link the innerHTML of a tag with the variable `varName`.
+
+	*Note:* If you wish to use this command, the content of `varName` must be
+	the *only* child of the tag.  Having other additional content will throw
+	syntax error.
+
+3.	`[[viewName]]`
+
+	The above will inject the view in the variable named `viewName`
+
+4.	`[[viewListName*]]`
+
+	The above will inject all the views in the array named `viewListName`
+
+
+Example
+-------
+
+Body Template:
+
+```html
+	<body>
+		[[header]]
+		<ul class="id-cards">
+			[[idCards*]]
+		</ul>
+	</body>
+```
+
+Header Template:
+
+```html
+	<h1>ID Card List</h1>
+```
+
+ID Card Template:
+
+```html
+	<li class="id-card" style={{style}}>
+		<span class="name">{{name}}</span>
+		<span class="dob">{{dob}}</span>
+	</li>
+```
+
+Views
+=====
+
+### Delaring new classes of views, an overview
+
+New classes of views are declared as follows:
+
+```js
+	var ViewClass = Fluid.compileView({
+		template: /* String */,
+		calc: /* Function */,
+		setControls: /* Function */
+	});
+```
+
+The `template` property is the template for the view.
+
+The `calc` property is the function which computes the values that go into
+the template function.  This job includes passing the relevant information
+along to child views.  Once these values are computed, they are returned in
+the form of an object, where the key names in the object line up with the
+variable names in the template.
+
+The `setControls` function is in charge of attaching all the relevant events
+to a view.
+
+### Root Views vs Child Views
+
+There are two types of views: *Root Views* and *Child Views*.
+
+*Root Views* are not the child of any other view.  They are attached directly
+to the DOM, and are rendered according to information coming directly from
+models.  *Child Views* on the other hand, have a parent view.  They are
+linked to the DOM only through its parent view, and is rendered based soley
+on the information its parent provides it.  Thus, information percolates
+from the models, to the root views, through the child views, down to the leaf
+views (views with no children).
+
+Root views are attached to the DOM/models as follows:
+
+```js
+	Fluid.attachView($elem, ViewClass[, model1[, model2[, ...]]])
+```
+
+Where `$elem` is the object which the root view will be controling from now
+on, `ViewClass` is the class of the root view, and `model1, model2, ...` are
+the models which the root view will be based off of.
+
+Child views are attached to their parent during the `calc` function through
+commands like the following:
+
+```js
+	ret.childView = new ViewClass([param1[, param2[, ...]]]);
+```
+
+Where `ret` is the object which `calc` will return, `childView` is the name
+of the child view in the template, `ViewClass` is the class of the child
+view, and `param1, param2, ...` is the information which the child view will
+be based off.
+
+### Delaring new classes of view, details
+
+#### `template`
+
+By default, this is `""`
+
+#### The `calc` function
+
+If the view is a root view, then the parameters to the `calc` function are
+the values of the models which the view is being based on.  If the view is
+a child view, then the parameters to the `calc` function are the values which
+were passed to it by its parent's `calc` function.
+
+By default, `calc` is set to `function() {return new Object();}`
+
+#### The parameters of the `setControls` function
+
+The parameters of `setControls` are:
+
+1. `true` iff this function is being called for the first time this instance
+2. The jQuery object representing representing this view
+3. The first parameter to the `calc` function, if one exists
+4. The second parameter to the `calc` function, if one exists
+5. The third parameter to the `calc` function, if one exists
+6. Etc.
+
+By default, `setControls` is set to `function(){}`
+
+Final Notes
+===========
+
+This is a first draft of this software.  There are indeed many features
+missing.  But that's to be expected.
+
+License
+=======
+
+See the LICENSE file for license rights and limitations. 
