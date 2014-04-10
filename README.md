@@ -75,7 +75,7 @@ instead of just raw HTML injections.  Finally, Fuild.js needs to have explict
 and limited syntax in its templating language so that content can be quickly
 updated.
 
-In that vain, there are four ways to inject values/views in Fluid.js'
+In that vain, there are three ways to inject values/views in Fluid.js'
 templating language:
 
 1.	`<tag attr={{varName}}>`
@@ -84,19 +84,19 @@ templating language:
 
 2.	`<tag>{{varName}}</tag>`
 
-	The above will link the innerHTML of a tag with the variable `varName`.
-
-	*Note:* If you wish to use this command, the content of `varName` must be
-	the *only* child of the tag.  Having other additional content will throw
-	syntax error.
+	The above will link the inner text of a tag with the variable `varName`.
+	Not that this command cannot be used to set HTML content.  It sets text.
+	What's more, it is not possible to use this command to set the text
+	inside a tag and also have other content inside the tag.  If you are
+	using this command, this injection must be the sole contents of the tag.
 
 3.	`[[viewName]]`
 
-	The above will inject the view in the variable named `viewName`
+	The above will inject the view or array of views in the variable named
+	`viewName`
 
-4.	`[[viewListName*]]`
-
-	The above will inject all the views in the array named `viewListName`
+What's more non-empty templates must have a single outer-most tag which
+everything in the template (except the tag itself) is a child of.
 
 
 Example
