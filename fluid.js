@@ -1,0 +1,206 @@
+//Credit to John Resig
+if(typeof Object.getPrototypeOf !== "function") {
+	if(typeof "test".__proto__ === "object")
+		Object.getPrototypeOf = function(object){
+			return object.__proto__;
+		};
+	else
+		Object.getPrototypeOf = function(object){
+			// May break if the constructor has been tampered with
+			return object.constructor.prototype;
+		};
+}
+
+//Credit to MDN
+if(typeof Object.create != 'function') {
+    (function () {
+        var F = function () {};
+        Object.create = function (o) {
+            F.prototype = o;
+            return new F();
+        };
+    })();
+}
+if(!Array.isArray) {
+	Array.isArray = function(arg) {
+		return Object.prototype.toString.call(arg) === '[object Array]';
+	};
+}
+
+
+var Fluid = (function() {
+	"use strict";
+	var fluid = {};
+
+/**********************\
+ *     Fluid.model     *
+\**********************/
+
+	fluid.model = function(init) {
+		this.val = init;
+		this.listeners = [];
+	};
+	fluid.model.prototype.get = function() {return this.val;};
+	fluid.model.prototype.set = function(val) {
+		this.val = val;
+		this.alert();
+		return val;
+	};
+	fluid.model.prototype.listen = function(fun) {this.listeners.push(fun);};
+	fluid.model.prototype.alert = function() {
+		for(var i = 0; i < this.listeners.length)
+			this.listeners[i]();
+	};
+
+
+/**********************\
+ *  Fluid.compileView  *
+\**********************/
+
+/*	View instances have the following properties & method:
+ *
+ *
+ *	getFreshJQ -	Generates a jQuery object based on the template ready to
+ *					be updated based on the results of calc()
+ *	attrCommands -	map ("varname" -> "idAttr" -> ["attrToSet"])
+ *	textCommands -	map ("varname" -> ["idAttr"])
+ *	viewCommands - map ("viewname" -> "idAttr")
+ *
+ *
+ *	state -	The array which was last used as arguments for the calc()
+ *			function.  Or, if the calc function hasn't been called yet, the
+ *			array of arguments passed into the constructor.
+ *	vals -	The last result of the calc() function, null if not yet called
+ *
+ *
+ *	$el -	The jQuery object which is the markup for the view.  Is null
+ *			until update is called for the first time.
+ *	update([view]) - Does the following:
+ *		1.	If the view parameter was specified, this.state = view.state
+ *		2.	Run calc()
+ *		3.	Use the result of the calc function to update this.$el
+ *		4.	Call setControls() with the correct params
+ */
+	function AbstractView() {}
+	AbstractView.prototype.update = function(view)
+	{
+		this.state = (view || {}).state || this.state;
+		var newVals = this.calc.apply(this, this.state);
+
+		var inited = this.vals != null;
+		if(!inited) {
+			this.$el = this.getFreshJQ();
+			this.vals = {};
+		}
+
+		//Attrs
+		for(var vname in this.attrCommands) {
+			var val = newVals[vname];
+			if(!inited || this.vals[vname] != val)
+				for(var idAttr in this.attrCommands[vname]) {
+					var $elem = this.$el.find("["+idAttr+"]");
+					var attrs = this.attrCommands[vname][idAttr];
+					for(var i = 0; i < attrs.length; i++)
+						$elem.attr(attrs[i], val);
+				}
+		}
+
+		//Text
+		for(var vname in this.textCommands) {
+			var val = newVals[vname];
+			if(!inited || this.vals[vname] != val) {
+				var idAttrs = this.textCommands[vname];
+				for(var i = 0; i < idAttrs.length; i++)
+					this.$el.find("["+idAttrs[i]+"]").text(val);
+			}
+		}
+
+		//Views
+		for(var vname in this.viewCommands) {
+			var view = newVals[vname];
+			var oldView = this.vals[vname];
+			var $elem = this.$el.find("["+this.viewCommands[vname]+"]");
+
+			if(Array.isArray(view)) {
+				if(Array.isArray(oldView)) {
+					var numToKeep = Math.min(view.length, oldView.length);
+					if((numToKeep > 0) &&
+							(Object.getPrototypeOf(oldView[i]) !=
+								Object.getPrototypeOf(view[i])))
+						numToKeep = 0;
+					while(oldView.length > numToKeep) {
+						oldView[oldView.length-1].$el.remove();
+						oldView.length--;
+					}
+				} else {
+					oldView.$el.remove();
+					oldView = [];
+				}
+				for(var i = 0; i < oldView.length; i++) {
+					oldView[i].update(view[i]);
+					view[i] = oldView[i];
+				}
+				for(var i = oldView.length; i < view.length; i++) {
+					view[i].update();
+					$elem.before(view[i].$el);
+				}
+			} else {
+				var insertFresh = true;
+				if(Array.isArray(oldView)) {
+					for(var i = 0; i < oldView.length; i++)
+						oldView[i].$el.remove();
+				} else if(	Object.getPrototypeOf(oldView) !=
+							Object.getPrototypeOf(view)) {
+					oldView.$el.remove();
+				} else {
+					insertFresh = false;
+					oldView.update(view);
+					newVals[vname] = oldView;
+				}
+				if(insertFresh) {
+					view.update();
+					$elem.before(view.$el);
+				}
+			}
+		}
+
+		this.vals = newVals;
+		this.setControls(this, [!inited, this.$el].concat(this.state));
+	}
+
+	fluid.compileView = function(props) {
+		
+	};
+
+/*********************\
+ *  Fluid.attachView  *
+\*********************/
+
+	fluid.attachView = function($elem, ViewClass) {
+		var models = Array.prototype.slice.call(arguments, 2);
+
+		//We need to be able to call the ViewClass constructor with an array
+		//for an argument list.  This is going to be a bit hack-y
+		function ViewInstance() {
+			var mVals = [];
+			for(var i = 0; i < models.length; i++)
+				mVals.push(models[i].get());
+			ViewClass.apply(this, mVals);
+		}
+		ViewInstance.prototype = ViewClass.prototype;
+
+		//Make the actual view
+		var view = new ViewInstance();
+		view.update();
+
+		//Update code
+		function updateView() {view.update(new ViewInstance());}
+		for(var i = 0; i < models.length; i++)
+			models[i].listen(updateView);
+
+		//Attach to the DOM
+		$elem.replaceWith(view.$el);
+	}
+
+	return fluid;
+})()
