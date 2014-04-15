@@ -4,8 +4,7 @@ Fluid.js
 Fluid.js is a new Model View Controler (MVC) designed to make it easier for
 webapps to have smooth transitions and animations.
 
-Why?
-----
+### Why?
 
 The animations and smooth transitions of native apps are one of the major
 factors that give them their fun, playful feel.  Webapps, in contrast,
@@ -108,8 +107,7 @@ What's more non-empty templates must have a single outer-most tag which
 everything in the template (except the tag itself) is a child of.
 
 
-Example
--------
+### Example
 
 Body Template:
 
