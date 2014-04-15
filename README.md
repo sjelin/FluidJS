@@ -14,20 +14,20 @@ is a major reason why webapps, even ones which are well designed and look
 beautiful in screen shots, still feel clunky and low-tech when you actually
 use them.
 
-This is totally unacceptable.  The WebKit team introduced CSS animations
-[7 years ago](https://www.webkit.org/blog/138/css-animation/).  These CSS
-features are actually perfectly desgined to smooth out transitions in
-webapps, and generally make animations easier.  Yet, these features are
-rarely used.  The reason has to do with the way that most of our webapps
-are rendered.
+This is totally unacceptable.  The WebKit team introduced CSS transitions
+[7 years ago](https://www.webkit.org/blog/138/css-animation/).  More complex
+animations using `keyframes` date back five years.  These CSS features are
+actually perfectly desgined to give webapps the missing dynamic feel of a
+native app.  Yet, these features are barely used.  The reason has to do with
+the way that most of our webapps are rendered.
 
 Generally, when our models change, the MVC will discard all the stale content
 from the DOM, and replace it with fresh content.  While this certainly works,
 and is easy to think about from a programing POV, it also makes transitions
 incredibly difficult.  This is because the browser cannot smooth out the
 transition from old content to new when the old content is simply being
-replaced.  Instead, for CSS transitions to work, the old DOM content needs
-to be updated instead of replaced.
+replaced.  Instead, for these CSS features to be truly effective, the old DOM
+content needs to be updated instead of replaced.
 
 The goal of this project is to build an MVC that works by updating content
 instead of replacing it, but is still just as easy to work with as an MVC
@@ -43,6 +43,15 @@ elements instead of recreating them.
 
 Because of this complexity, we suggest that you look at [our example]()
 regularly when reading this document.
+
+Philosophy
+==========
+
+We believe that CSS is the appropriate place for transitions/animations to
+be defined.  While better browser support might be reached with JavaScript,
+animations are a non-critical (though important) feature, with fairly good
+support, and putting animation code into JavaScript would clutter the
+codebase of both the people using this MVC and the MVC itself.
 
 Models
 ======
@@ -145,8 +154,8 @@ New classes of views are declared as follows:
 
 The `template` property is the template for the view.
 
-The `calc` property is the function which computes the values that go into
-the template function.  This job includes passing the relevant information
+The `calc` property is the function which computes the values that are used
+to fill in the template.  This job includes passing the relevant information
 along to child views.  Once these values are computed, they are returned in
 the form of an object, where the key names in the object line up with the
 variable names in the template.
@@ -201,9 +210,13 @@ the values of the models which the view is being based on.  If the view is
 a child view, then the parameters to the `calc` function are the values which
 were passed to it by its parent's `calc` function.
 
+Primarily, the properties of the object returned by the `calc` function are
+used directly to fill in the template.  However, there may be special
+properties in the future.
+
 By default, `calc` is set to `function() {return new Object();}`
 
-#### The parameters of the `setControls` function
+#### The `setControls` function
 
 The parameters of `setControls` are:
 

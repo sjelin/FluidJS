@@ -60,20 +60,25 @@ var Fluid = (function() {
 /*	View instances have the following properties & method:
  *
  *
+ *	calc() -	The function passed when the view class was declared
+ *	setControls() - The function passed when the view class was declared  
+ *
+ *
  *	getFreshJQ -	Generates a jQuery object based on the template ready to
  *					be updated based on the results of calc()
- *	attrCommands -	map ("varname" -> "idAttr" -> ["attrToSet"])
+ *	attrCommands -	map ("varname" -> "idAttr" -> "attrToSet")
  *	textCommands -	map ("varname" -> ["idAttr"])
- *	viewCommands - map ("viewname" -> "idAttr")
+ *	viewCommands - map ("viewname" -> "id")
  *
  *
  *	state -	The array which was last used as arguments for the calc()
  *			function.  Or, if the calc function hasn't been called yet, the
  *			array of arguments passed into the constructor.
- *	vals -	The last result of the calc() function, null if not yet called
+ *	vals -	The last result of the calc() function, undefined if calc()
+ *			hasn't been called yet
  *
  *
- *	$el -	The jQuery object which is the markup for the view.  Is null
+ *	$el -	The jQuery object which is the markup for the view.  Is undefined
  *			until update is called for the first time.
  *	update([view]) - Does the following:
  *		1.	If the view parameter was specified, this.state = view.state
@@ -99,9 +104,7 @@ var Fluid = (function() {
 			if(!inited || this.vals[vname] != val)
 				for(var idAttr in this.attrCommands[vname]) {
 					var $elem = this.$el.find("["+idAttr+"]");
-					var attrs = this.attrCommands[vname][idAttr];
-					for(var i = 0; i < attrs.length; i++)
-						$elem.attr(attrs[i], val);
+					$elem.attr(this.attrCommands[vname][idAttr];, val);
 				}
 		}
 
@@ -119,7 +122,7 @@ var Fluid = (function() {
 		for(var vname in this.viewCommands) {
 			var view = newVals[vname];
 			var oldView = this.vals[vname];
-			var $elem = this.$el.find("["+this.viewCommands[vname]+"]");
+			var $elem = this.$el.find("#"+this.viewCommands[vname]);
 
 			if(Array.isArray(view)) {
 				if(Array.isArray(oldView)) {
@@ -169,7 +172,50 @@ var Fluid = (function() {
 	}
 
 	fluid.compileView = function(props) {
+		function View() {
+			this.state = Array.prototype.slice.call(arguments, 0);
+		}
+		View.prototype = Object.create(AbstractView);
+		View.prototype.calc = props.calc || function(){return new Object();};
+		View.prototype.setControls = props.setControls || function(){};
 		
+		//Template
+		function getNewIDAttr() {
+			return "_"+Math.random().toString(36).substr(2);
+		}
+
+		View.attrCommands = {};
+		View.textCommands = {};
+		View.viewCommands = {};
+		props.template =
+			//Attribute Commands
+			props.template.replace(/[^\s]+={{\s*\w+\s*}}/g, function(match) {
+				var i = match.indexOf("=");
+				var aname = match.substr(0, i);
+				var vname = match.substr(eqIndex+3, match.length-i-5).trim();
+				var idAttr = getNewIDAttr();
+				if(View.attrCommands[vname] == null)
+					View.attrCommands[vname] = {};
+				View.attrCommands[vname][idAttr] = aname;
+				return idAttr;
+			//Text Commands
+			}).replace(/>\s*{{\s*\w+\s*}}\s*</g, function(match) {
+				var vname = match.substr(1, match.length-2).trim();
+				var idAttr = getNewIDAttr();
+				if(View.textCommands[vname] == null)
+					View.textCommands[vname] = [];
+				View.textCommands[vname].push(idAttr);
+				return " "+idAttr+"><";
+			//View Commands
+			}).replace(/\[\[\s*\w+\s*\]\]/g, function(match) {
+				var vname = match.substr(2, match.length-4).trim();
+				var id = getNewIDAttr();
+				View.viewCommands[vname] = id;
+				return "<span id='"+id+"' style='display: none'></span>";
+			});
+		View.getFreshJQ = function() {return $(props.template);};
+
+		return View;
 	};
 
 /*********************\
