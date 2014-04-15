@@ -1,4 +1,4 @@
-//Credit to John Resig
+//Credit to John Resig for this implementation of Object.getPrototypeOf
 if(typeof Object.getPrototypeOf !== "function") {
 	if(typeof "test".__proto__ === "object")
 		Object.getPrototypeOf = function(object){
@@ -11,16 +11,7 @@ if(typeof Object.getPrototypeOf !== "function") {
 		};
 }
 
-//Credit to MDN
-if(typeof Object.create != 'function') {
-    (function () {
-        var F = function () {};
-        Object.create = function (o) {
-            F.prototype = o;
-            return new F();
-        };
-    })();
-}
+//Credit to MDN for this implementation of Array.isArray
 if(!Array.isArray) {
 	Array.isArray = function(arg) {
 		return Object.prototype.toString.call(arg) === '[object Array]';
@@ -48,10 +39,17 @@ var Fluid = (function() {
 	};
 	fluid.model.prototype.listen = function(fun) {this.listeners.push(fun);};
 	fluid.model.prototype.alert = function() {
-		for(var i = 0; i < this.listeners.length)
+		for(var i = 0; i < this.listeners.length; i++)
 			this.listeners[i]();
 	};
 
+	function typeEq(x,y) {
+		var t = typeof x;
+		return	(x === y) || ((t == typeof y) && ((t != "object") ||
+				((x != null) && (y != null) && (
+				Object.getPrototypeOf(x) == Object.getPrototypeOf(y)
+		))));
+	}
 
 /**********************\
  *  Fluid.compileView  *
@@ -103,8 +101,9 @@ var Fluid = (function() {
 			var val = newVals[vname];
 			if(!inited || this.vals[vname] != val)
 				for(var idAttr in this.attrCommands[vname]) {
-					var $elem = this.$el.find("["+idAttr+"]");
-					$elem.attr(this.attrCommands[vname][idAttr];, val);
+					var $elem = this.$el.is("["+idAttr+"]") ? this.$el :
+								this.$el.find("["+idAttr+"]");
+					$elem.attr(this.attrCommands[vname][idAttr], val);
 				}
 		}
 
@@ -114,7 +113,8 @@ var Fluid = (function() {
 			if(!inited || this.vals[vname] != val) {
 				var idAttrs = this.textCommands[vname];
 				for(var i = 0; i < idAttrs.length; i++)
-					this.$el.find("["+idAttrs[i]+"]").text(val);
+					(	this.$el.is("["+idAttrs[i]+"]") ? this.$el :
+						this.$el.find("["+idAttrs[i]+"]")).text(val);
 			}
 		}
 
@@ -122,21 +122,23 @@ var Fluid = (function() {
 		for(var vname in this.viewCommands) {
 			var view = newVals[vname];
 			var oldView = this.vals[vname];
-			var $elem = this.$el.find("#"+this.viewCommands[vname]);
+			var $elem = this.$el.attr("id") == this.viewCommands[vname] ?
+						this.$el:this.$el.find("#"+this.viewCommands[vname]);
 
 			if(Array.isArray(view)) {
 				if(Array.isArray(oldView)) {
 					var numToKeep = Math.min(view.length, oldView.length);
 					if((numToKeep > 0) &&
-							(Object.getPrototypeOf(oldView[i]) !=
-								Object.getPrototypeOf(view[i])))
+							(Object.getPrototypeOf(oldView[0]) !=
+								Object.getPrototypeOf(view[0])))
 						numToKeep = 0;
 					while(oldView.length > numToKeep) {
 						oldView[oldView.length-1].$el.remove();
 						oldView.length--;
 					}
 				} else {
-					oldView.$el.remove();
+					if(inited)
+						oldView.$el.remove();
 					oldView = [];
 				}
 				for(var i = 0; i < oldView.length; i++) {
@@ -149,16 +151,18 @@ var Fluid = (function() {
 				}
 			} else {
 				var insertFresh = true;
-				if(Array.isArray(oldView)) {
-					for(var i = 0; i < oldView.length; i++)
-						oldView[i].$el.remove();
-				} else if(	Object.getPrototypeOf(oldView) !=
-							Object.getPrototypeOf(view)) {
-					oldView.$el.remove();
-				} else {
-					insertFresh = false;
-					oldView.update(view);
-					newVals[vname] = oldView;
+				if(inited) {
+					if(Array.isArray(oldView)) {
+						for(var i = 0; i < oldView.length; i++)
+							oldView[i].$el.remove();
+					} else if(	Object.getPrototypeOf(oldView) !=
+								Object.getPrototypeOf(view)) {
+						oldView.$el.remove();
+					} else {
+						insertFresh = false;
+						oldView.update(view);
+						newVals[vname] = oldView;
+					}
 				}
 				if(insertFresh) {
 					view.update();
@@ -175,7 +179,7 @@ var Fluid = (function() {
 		function View() {
 			this.state = Array.prototype.slice.call(arguments, 0);
 		}
-		View.prototype = Object.create(AbstractView);
+		View.prototype = new AbstractView();
 		View.prototype.calc = props.calc || function(){return new Object();};
 		View.prototype.setControls = props.setControls || function(){};
 		
@@ -184,36 +188,38 @@ var Fluid = (function() {
 			return "_"+Math.random().toString(36).substr(2);
 		}
 
-		View.attrCommands = {};
-		View.textCommands = {};
-		View.viewCommands = {};
+		View.prototype.attrCommands = {};
+		View.prototype.textCommands = {};
+		View.prototype.viewCommands = {};
+		props.template = props.template || "";
 		props.template =
 			//Attribute Commands
 			props.template.replace(/[^\s]+={{\s*\w+\s*}}/g, function(match) {
 				var i = match.indexOf("=");
 				var aname = match.substr(0, i);
-				var vname = match.substr(eqIndex+3, match.length-i-5).trim();
+				var vname = match.substr(i+3, match.length-i-5).trim();
 				var idAttr = getNewIDAttr();
-				if(View.attrCommands[vname] == null)
-					View.attrCommands[vname] = {};
-				View.attrCommands[vname][idAttr] = aname;
+				if(View.prototype.attrCommands[vname] == null)
+					View.prototype.attrCommands[vname] = {};
+				View.prototype.attrCommands[vname][idAttr] = aname;
 				return idAttr;
 			//Text Commands
 			}).replace(/>\s*{{\s*\w+\s*}}\s*</g, function(match) {
 				var vname = match.substr(1, match.length-2).trim();
+				vname = vname.substr(2, vname.length-4).trim();
 				var idAttr = getNewIDAttr();
-				if(View.textCommands[vname] == null)
-					View.textCommands[vname] = [];
-				View.textCommands[vname].push(idAttr);
+				if(View.prototype.textCommands[vname] == null)
+					View.prototype.textCommands[vname] = [];
+				View.prototype.textCommands[vname].push(idAttr);
 				return " "+idAttr+"><";
 			//View Commands
 			}).replace(/\[\[\s*\w+\s*\]\]/g, function(match) {
 				var vname = match.substr(2, match.length-4).trim();
 				var id = getNewIDAttr();
-				View.viewCommands[vname] = id;
+				View.prototype.viewCommands[vname] = id;
 				return "<span id='"+id+"' style='display: none'></span>";
 			});
-		View.getFreshJQ = function() {return $(props.template);};
+		View.prototype.getFreshJQ = function() {return $(props.template);};
 
 		return View;
 	};
