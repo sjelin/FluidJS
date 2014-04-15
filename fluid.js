@@ -7,7 +7,7 @@ var Fluid = (function($) {
  *    Compatibility    *
 \**********************/
 
-	//Credit to John Resig for this implementation of Object.getPrototypeOf
+	//Credit to John Resig for his implementation of Object.getPrototypeOf
 	function sameProto(x,y) {
 		if(typeof Object.getPrototypeOf === "function")
 			return Object.getPrototypeOf(x) == Object.getPrototypeOf(y);

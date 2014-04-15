@@ -235,6 +235,11 @@ Final Notes
 This is a first draft of this software.  There are indeed many features
 missing.  But that's to be expected.
 
+Discuss
+=======
+
+First I need to make an example page & proof read this README :O
+
 License
 =======
 
