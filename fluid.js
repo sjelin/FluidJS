@@ -1,27 +1,26 @@
-//Credit to John Resig for this implementation of Object.getPrototypeOf
-if(typeof Object.getPrototypeOf !== "function") {
-	if(typeof "test".__proto__ === "object")
-		Object.getPrototypeOf = function(object){
-			return object.__proto__;
-		};
-	else
-		Object.getPrototypeOf = function(object){
-			// May break if the constructor has been tampered with
-			return object.constructor.prototype;
-		};
-}
-
-//Credit to MDN for this implementation of Array.isArray
-if(!Array.isArray) {
-	Array.isArray = function(arg) {
-		return Object.prototype.toString.call(arg) === '[object Array]';
-	};
-}
-
-
-var Fluid = (function() {
+var Fluid = (function($) {
 	"use strict";
 	var fluid = {};
+
+
+/**********************\
+ *    Compatibility    *
+\**********************/
+
+	//Credit to John Resig for this implementation of Object.getPrototypeOf
+	function sameProto(x,y) {
+		if(typeof Object.getPrototypeOf === "function")
+			return Object.getPrototypeOf(x) == Object.getPrototypeOf(y);
+		else if(typeof "test".__proto__ === "object")
+			return x.__proto__ == y.__proto__;
+		else
+			return x.constructor.prototype == y.constructor.prototype;
+	}
+
+	//Credit to MDN
+	var isArray = Array.isArray || function(x) {
+		return Object.prototype.toString.call(x) === '[object Array]';
+	};
 
 /**********************\
  *     Fluid.model     *
@@ -42,14 +41,6 @@ var Fluid = (function() {
 		for(var i = 0; i < this.listeners.length; i++)
 			this.listeners[i]();
 	};
-
-	function typeEq(x,y) {
-		var t = typeof x;
-		return	(x === y) || ((t == typeof y) && ((t != "object") ||
-				((x != null) && (y != null) && (
-				Object.getPrototypeOf(x) == Object.getPrototypeOf(y)
-		))));
-	}
 
 /**********************\
  *  Fluid.compileView  *
@@ -125,12 +116,10 @@ var Fluid = (function() {
 			var $elem = this.$el.attr("id") == this.viewCommands[vname] ?
 						this.$el:this.$el.find("#"+this.viewCommands[vname]);
 
-			if(Array.isArray(view)) {
-				if(Array.isArray(oldView)) {
+			if(isArray(view)) {
+				if(isArray(oldView)) {
 					var numToKeep = Math.min(view.length, oldView.length);
-					if((numToKeep > 0) &&
-							(Object.getPrototypeOf(oldView[0]) !=
-								Object.getPrototypeOf(view[0])))
+					if((numToKeep > 0) && !sameProto(oldView[0], view[0]))
 						numToKeep = 0;
 					while(oldView.length > numToKeep) {
 						oldView[oldView.length-1].$el.remove();
@@ -152,11 +141,10 @@ var Fluid = (function() {
 			} else {
 				var insertFresh = true;
 				if(inited) {
-					if(Array.isArray(oldView)) {
+					if(isArray(oldView)) {
 						for(var i = 0; i < oldView.length; i++)
 							oldView[i].$el.remove();
-					} else if(	Object.getPrototypeOf(oldView) !=
-								Object.getPrototypeOf(view)) {
+					} else if(!sameProto(oldView, view)) {
 						oldView.$el.remove();
 					} else {
 						insertFresh = false;
@@ -255,4 +243,4 @@ var Fluid = (function() {
 	}
 
 	return fluid;
-})()
+})(jQuery)
