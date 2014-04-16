@@ -13,12 +13,12 @@ a {
 	user-select: none;
 }
 
-.Models {
-	width: calc(60% - 2em);
+.Models, .Views {
+	width: calc(50% - 2em);
 	position: absolute;
 }
 .Views {
-	width: calc(40% - 2em);
+	width: calc(50% - 2em);
 	position: absolute;
 	right: 1em;
 }
