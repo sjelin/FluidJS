@@ -48,10 +48,10 @@
 			</div>
 		</script>
 		<script type="text/template" id="view-tmplt">
-			<a class={{class}} style={{style}} modelIndex={{modelIndex}}>
+			<div class={{class}} style={{style}} modelIndex={{modelIndex}}>
 				<span class="name">{{name}}</span>
-				<div class="drag"></a>
-			</a>
+				<a class="drag"></a>
+			</div>
 		</script>
 		<script type="text/JavaScript">
 			var items = new Fluid.model([{
@@ -155,7 +155,7 @@
 							modelIndex: modelIndex};
 				},
 				setControls: function(init, $el) {
-					if(init) $el.find(".drag").mousedown(function(mEvent) {
+					if(init) $el.mousedown(function(mEvent) {
 						var itms = items.get();
 						var item = itms[parseInt(
 									$(this).parent().attr("modelIndex"))];
