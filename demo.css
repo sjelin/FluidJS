@@ -13,11 +13,15 @@ a {
 	user-select: none;
 }
 
-.Models, .Views {
-	width: calc(50% - 2em);
+.Models {
+	width: calc(60% - 2em);
 	position: absolute;
 }
-.Views {right: 1em;}
+.Views {
+	width: calc(40% - 2em);
+	position: absolute;
+	right: 1em;
+}
 
 .Models .header .name {
 	margin-left: 22px;
