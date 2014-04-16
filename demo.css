@@ -8,5 +8,8 @@ body {
 	width: calc(50% - 2em);
 	position: absolute;
 }
-
 .Views {right: 1em;}
+
+.Models div {
+	width: calc(33% - 0.34em);
+}
