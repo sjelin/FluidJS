@@ -107,7 +107,7 @@
 					var klass = "item";
 					if(hide)
 						klass += " hidden";
-					var style = "top: "+(40*index)+"px";
+					var style = "top: "+(2*index)+"em";
 					return {class: klass, style: style, name: name,
 							color: color, bg: bg, modelIndex: modelIndex};
 				},
@@ -147,7 +147,7 @@
 						klass += " hidden";
 					if(drag != null)
 						klass += "drag";
-					var style = "top: " + (40*index+(drag||0)) +
+					var style = "top: " + (32*index+(drag||0)) +
 								"px; color: #"+color+"; background: #"+bg;
 					return {class: klass, style: style, name: name,
 							modelIndex: modelIndex};
@@ -161,7 +161,7 @@
 						var initIndex = item.index;
 						window.onmousemove = function(mEvent) {
 							item.drag = mEvent.screenY - initY;
-							var newIndex=initIndex-Math.round(item.drag/40);
+							var newIndex=initIndex-Math.round(item.drag/32);
 							if(newIndex < item.index) {
 								for(var i = 0; i < itms.length; i++)
 									if(	itms[i].index < item.index &&

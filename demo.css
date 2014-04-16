@@ -19,11 +19,16 @@ a {
 	display: inline-block;
 }
 
+.Views .items {
+	position: relative;
+}
+
 .Views .item {
 	height: 1.5em;
+	width: calc(100% - 0.5em);
 	line-height: 1.5em;
 	padding: 0.25em 0.5em;
-	position: relative;
+	position: absolute;
 }
 
 .Views .item .drag {
