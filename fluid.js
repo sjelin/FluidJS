@@ -160,7 +160,7 @@ var Fluid = (function($) {
 		}
 
 		this.vals = newVals;
-		this.setControls(this, [!inited, this.$el].concat(this.state));
+		this.setControls.apply(this, [!inited, this.$el].concat(this.state));
 	}
 
 	fluid.compileView = function(props) {
