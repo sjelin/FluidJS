@@ -19,7 +19,7 @@
 						<p class="color">Text Color</p>
 						<p class="bg">Background Color</p>
 					</div>
-					<div class="items">
+					<div class="items" style={{items_style}}>
 						[[models]]
 					</div>
 					<a class="new">+ Add new</a>
@@ -82,7 +82,8 @@
 								items[i].bg, items[i].hide,
 								items[i].drag));
 						}
-					return {models: models, views: views};
+					return {models: models, views: views, items_style: 
+							"height: "+(models.length*23)+"px"};
 				},
 				setControls: function(init, $el) {
 					if(init) $el.find(".new").click(function() {
