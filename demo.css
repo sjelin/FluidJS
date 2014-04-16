@@ -19,6 +19,10 @@ a {
 }
 .Views {right: 1em;}
 
+.Models .header .name {
+	margin-left: 22px;
+}
+
 .Models .header.item, .Models .items {
 	position: relative;
 }
@@ -28,9 +32,22 @@ a {
 	position: absolute;
 }
 
-.Models .name, .Models .color, .Models .bg {
-	width: calc(33% - 0.34em);
+.Models .item .delete {
 	display: inline-block;
+	width: 1em;
+	height: 1em;
+	position: relative;
+	top: 3px;
+}
+
+.Models .item .delete:before {
+	content: 'X';
+}
+
+.Models .name, .Models .color, .Models .bg {
+	width: calc(33% - 10px);
+	display: inline-block;
+	margin: 0px;
 }
 
 .Views .items {
