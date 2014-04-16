@@ -117,14 +117,17 @@
 									itms[j].index--;
 							items.alert();
 						});
-						$el.find("input").keypress(function() {
+						function key() {
 							var $this = $(this).parent().parent();
 							var item = items.get()[
 										parseInt($this.attr("modelIndex"))];
 							item.name = $this.find(".name input").val();
 							item.color = $this.find(".color input").val();
 							items.alert();
-						});
+						};
+						$el.find("input").keydown(key);
+						$el.find("input").keyup(key);
+						$el.find("input").keypress(key);
 					}
 				}
 			});
