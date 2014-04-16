@@ -19,10 +19,23 @@ body {
 	height: 1.5em;
 	line-height: 1.5em;
 	padding: 0.25em 0.5em;
+	position: relative;
 }
 
 .Views .item .drag {
 	display: inline-block;
-	height: 1em;
-	width: 1em;
+	height: 1.5em;
+	width: 1.5em;
+	position: absolute;
+	top: 0.25em;
+	right: 0.5em;
+}
+
+.Views .item .drag:before {
+	position: absolute;
+	width: 100%:
+	height: 2px;
+	top: calc(50% - 7px);
+	border-top: 6px double;
+	border-bottom: 6px double;
 }
