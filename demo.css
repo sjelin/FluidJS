@@ -96,7 +96,11 @@ a {
 	border-bottom: 6px double;
 }
 
-.hidden.item {
+.Models .hidden.item {
+	display: none;
+}
+
+.Views .hidden.item {
 	filter: alpha(opacity=0);
 	-moz-opacity: 0;
 	-khtml-opacity: 0;
