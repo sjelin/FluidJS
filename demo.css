@@ -10,6 +10,7 @@ body {
 }
 .Views {right: 1em;}
 
-.Models div {
+.Models .item > div {
 	width: calc(33% - 0.34em);
+	display: inline-block;
 }
