@@ -93,3 +93,10 @@ a {
 	border-top: 6px double;
 	border-bottom: 6px double;
 }
+
+.View .hidden.item {
+  filter: alpha(opacity=0);
+  -moz-opacity: 0;
+  -khtml-opacity: 0;
+  opacity: 0;
+}
