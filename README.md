@@ -40,8 +40,9 @@ have to trust that the APIs do what they say and not worry about "how."  This
 is unfortunately necessary in order to hide the complexity of updating DOM
 elements instead of recreating them.
 
-Because of this complexity, we suggest that you look at [our example]()
-regularly when reading this document.
+Because of this complexity, we suggest that you look at
+[our example](http://sjelin.github.io/FluidJS) regularly when reading this
+document.
 
 Philosophy
 ==========
