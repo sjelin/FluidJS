@@ -1,0 +1,10 @@
+body {
+	font-family: Helvetica, san-serif;
+}
+
+.Models, .Views {
+	width: 50%;
+	position: absolute;
+}
+
+.Views {right: 0px;}
