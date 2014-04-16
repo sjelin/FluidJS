@@ -146,7 +146,8 @@
 					if(hide)
 						klass += " hidden";
 					if(drag != null)
-						klass += "drag";
+						klass += " drag";
+					drag = (((drag || 0) + 16) % 32 + 32) % 32 - 16
 					var style = "top: " + (32*index+(drag||0)) +
 								"px; color: #"+color+"; background: #"+bg;
 					return {class: klass, style: style, name: name,
@@ -159,9 +160,14 @@
 									$(this).parent().attr("modelIndex"))];
 						var initY = mEvent.screenY;
 						var initIndex = item.index;
+						var maxIndex = 0;
+						for(var i = 0; i < itms.length; i++)
+							if(itms[i].index > maxIndex)
+								maxIndex = itms[i].index;
 						window.onmousemove = function(mEvent) {
 							item.drag = mEvent.screenY - initY;
-							var newIndex=initIndex-Math.round(item.drag/32);
+							var newIndex = Math.max(0, Math.min(maxIndex,
+									initIndex - Math.round(item.drag/32)));
 							if(newIndex < item.index) {
 								for(var i = 0; i < itms.length; i++)
 									if(	itms[i].index < item.index &&
