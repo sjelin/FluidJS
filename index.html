@@ -3,13 +3,14 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		<title>FluidJS Demo</title>
+		<title>Fluid.js Demo</title>
 		<meta charset="UTF-8" />
+		<link type="text/css" rel="Stylesheet" href="demo.css" media="all" />
 		<script type="text/JavaScript" src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 		<script type="text/JavaScript" src="fluid.js"></script>
 		<script type="text/template" id="body-tmplt">
-			<body>
-				<h1>FluidJS Demo</h1>
+			<div class="wrapper">
+				<h1>Fluid.js Demo</h1>
 				<div class="Models">
 					<h2>Models (ish)</h2>
 					<p>Edit the name/color of the views here, or add/remove them</p>
@@ -30,7 +31,7 @@
 						[[views]]
 					</div>
 				</div>
-			</body>
+			</div>
 		</script>
 		<script type="text/template" id="model-tmplt">
 			<div class={{class}} style={{style}} modelIndex={{modelIndex}}>
@@ -186,9 +187,9 @@
 				}
 			});
 			window.onload = function() {
-				Fluid.attachView($("body"), BodyView, items);
+				Fluid.attachView($("body > div"), BodyView, items);
 			};
 		</script>
 	</head>
-	<body> </body>
+	<body><div></div></body>
 </html>
