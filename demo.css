@@ -20,3 +20,9 @@ body {
 	line-height: 1.5em;
 	padding: 0.25em;
 }
+
+.Views .item .drag {
+	display: inline-block;
+	height: 1em;
+	width: 1em;
+}
