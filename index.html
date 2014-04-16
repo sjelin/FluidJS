@@ -167,7 +167,7 @@
 						window.onmousemove = function(mEvent) {
 							item.drag = mEvent.screenY - initY;
 							var newIndex = Math.max(0, Math.min(maxIndex,
-									initIndex - Math.round(item.drag/32)));
+									initIndex + Math.round(item.drag/32)));
 							if(newIndex < item.index) {
 								for(var i = 0; i < itms.length; i++)
 									if(	itms[i].index < item.index &&
