@@ -147,8 +147,8 @@
 						klass += " hidden";
 					if(drag != null)
 						klass += "drag";
-					var style = "top: " + (40*index+drag) + "px; color: #" +
-								color + "; background: #" + bg;
+					var style = "top: " + (40*index+(drag||0)) +
+								"px; color: #"+color+"; background: #"+bg;
 					return {class: klass, style: style, name: name,
 							modelIndex: modelIndex};
 				},
