@@ -163,7 +163,9 @@
 					});
 				}
 			});
-			Fluid.attachView($("body"), BodyView, items);
+			window.onload = function() {
+				Fluid.attachView($("body"), BodyView, items);
+			};
 		</script>
 	</head>
 	<body> </body>
