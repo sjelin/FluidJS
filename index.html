@@ -105,16 +105,27 @@
 							color: color, modelIndex: modelIndex};
 				},
 				setControls: function(init, $el) {
-					if(init) $el.find(".delete").click(function() {
-						var i=parseInt($(this).parent().attr("modelIndex"));
-						var itms = items.get();
-						itms[i].hide = true;
-						i = itms[i].index;
-						for(var j = 0; j < itms.length; j++)
-							if(itms[j].index > i)
-								itms[j].index--;
-						items.alert();
-					});
+					if(init) {
+						$el.find(".delete").click(function() {
+							var i = parseInt(
+										$(this).parent().attr("modelIndex"));
+							var itms = items.get();
+							itms[i].hide = true;
+							i = itms[i].index;
+							for(var j = 0; j < itms.length; j++)
+								if(itms[j].index > i)
+									itms[j].index--;
+							items.alert();
+						});
+						$el.find("input").change(function() {
+							var $this = $(this).parent().parent();
+							var item = items.get()[
+										parseInt($this.attr("modelIndex"))];
+							item.name = $this.find(".name input").val();
+							item.color = $this.find(".color input").val();
+							items.alert();
+						});
+					}
 				}
 			});
 			var ViewView = Fluid.compileView({
