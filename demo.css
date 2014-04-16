@@ -43,13 +43,13 @@ a {
 	line-height: 1.5em;
 	padding: 0.25em 0.5em;
 	position: absolute;
-	-webkit-transition: top 0.5s, transform 0.5s;
-	transition: top 0.5s, transform 0.5s;
+	-webkit-transition: top 0.5s, -webkit-transform 0.5s, background-color 0.5s;
+	transition: top 0.5s, transform 0.5s, background-color 0.5s;
 }
 
 .Views .drag.item {
-	-webkit-transition: transform 0.5s;
-	transition: transform 0.5s;
+	-webkit-transition: -webkit-transform 0.5s, background-color 0.5s;
+	transition: transform 0.5s, background-color 0.5s;
 }
 
 .Views .item .drag {
