@@ -1,1 +1,171 @@
-Init
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>FluidJS Demo</title>
+		<meta charset="UTF-8" />
+		<script type="text/JavaScript" src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+		<script type="text/JavaScript" src="https://raw.githubusercontent.com/sjelin/FluidJS/master/fluid.js"></script>
+		<script type="text/template" id="body-tmplt">
+			<body>
+				<h1>FluidJS Demo</h1>
+				<div class="Models">
+					<h2>Models (ish)</h2>
+					<p>Edit the name/color of the views here, or add/remove them</p>
+					<div class="header item">
+						<p class="name">Name</p>
+						<p class="color">Color</p>
+					</div>
+					<div class="items">
+						[[models]]
+					</div>
+					<a class="new">+ Add new</a>
+				</div>
+				<div class="Views">
+					<h2>Views (ish)</h2>
+					<p>Below the views are rendered.  You can also drag them around</p>
+					<div class="items"> 
+						[[views]]
+					</div>
+				</div>
+			</body>
+		</script>
+		<script type="text/template" id="model-tmplt">
+			<div class={{class}} style={{style}} modelIndex={{modelIndex}}>
+				<a class="delete"></a>
+				<div class="name">
+					<input type="text" value={{name}}></input>
+				</div>
+				<div class="color">
+					<input maxlength=6 type="text" value={{color}}></input>
+				</div>
+			</div>
+		</script>
+		<script type="text/template" id="view-tmplt">
+			<div class={{class}} style={{style}} modelIndex={{modelIndex}}>
+				<span class="name">{{name}}</span>
+				<a class="drag"></a>
+			</div>
+		</script>
+		<script type="text/JavaScript">
+			var items = new Fluid.model([{
+				index: 0, name: "Steve J.", color: "FAFAFA"
+			}, {
+				index: 0, name: "Bill G.", color: "56C5FF"
+			}, {
+				index: 0, name: "Jeff B.", color: "FF9900"
+			}, {
+				index: 0, name: "Larry P.", color: "DD4B39"
+			}, {
+				index: 0, name: "Mark Z.", color: "3B5998"
+			}, {
+				index: 0, name: "Amy Q.", color: "FF78A2"
+			}]);
+			var BodyView = Fluid.compileView({
+				template: $("#body-tmplt").html(),
+				calc: function(items) {
+					var models = [];
+					var views = [];
+					for(var i = 0; i < items.length; i++)
+						if(items[i] != null) {
+							models.push(new ModelView(modelIndex: i,
+								items[i].index, items[i].name,
+								items[i].color, items[i].hide));
+							views.push(new ViewView(modelIndex: i,
+								items[i].index, items[i].name,
+								items[i].color, items[i].hide,
+								items[i].drag));
+						}
+					return {models: models, views: views};
+				},
+				setControls: function(init, $el) {
+					if(init) $el.find(".new").click(function() {
+						var itms = items.get();
+						var cnt = 0;
+						for(var i = 0; i < itms.length; i++)
+							if((itms[i] != null) && !itms[i].hide)
+								cnt++;
+						itms.push({
+							index: cnt,
+							name: "",
+							color: "FFFFFF"
+						});
+						items.alert();
+					});
+				}
+			});
+			var ModelView = Fluid.compileView({
+				template: $("#model-tmplt").html(),
+				calc: function(modelIndex, index, name, color, hide) {
+					var klass = "item";
+					if(hide)
+						klass += " hidden";
+					var style = "top: "+(40*index)+"px";
+					return {class: klass, style: style, name: name,
+							color: color, modelIndex: modelIndex};
+				},
+				setControls: function(init, $el) {
+					if(init) $el.find(".delete").click(function() {
+						var i=parseInt($(this).parent().attr("modelIndex"));
+						var itms = items.get();
+						itms[i].hide = true;
+						i = itms[i].index;
+						for(var j = 0; j < itms.length; j++)
+							if(itms[j].index > i)
+								itms[j].index--;
+						items.alert();
+					});
+				}
+			});
+			var ViewView = Fluid.compileView({
+				template: $("#view-tmplt").html(),
+				calc: function(modelIndex, index, name, color, hide, drag) {
+					var klass = "item";
+					if(hide)
+						klass += " hidden";
+					if(drag != null)
+						klass += "drag";
+					var style = "top: "+(40*index+drag)+"px";
+					return {class: klass, style: style, name: name,
+							color: color, modelIndex: modelIndex};
+				},
+				setControls: function(init, $el) {
+					if(init) $el.find(".drag").mousedown(function(mEvent) {
+						var itms = items.get();
+						var item = itms[parseInt(
+									$(this).parent().attr("modelIndex"))];
+						var initY = mEvent.screenY;
+						var initIndex = item.index;
+						window.onmousemove = function(mEvent) {
+							item.drag = mEvent.screenY - initY;
+							var newIndex=initIndex-Math.round(item.drag/40);
+							if(newIndex < item.index) {
+								for(var i = 0; i < itms.length; i++)
+									if(	itms[i].index < item.index &&
+										itms[i].index >= newIndex)
+										itms[i].index++;
+							} else if(newIndex > item.index)
+								for(var i = 0; i < itms.length; i++)
+									if(	itms[i].index > item.index &&
+										itms[i].index <= newIndex)
+										itms[i].index--;
+							item.index = newIndex;
+							items.alert();
+						};
+						window.onmouseup = function(mEvent) {
+							window.onmousemove(mEvent);
+							delete item.drag;
+							items.alert();
+							window.onmousemove = undefined;
+							window.onmouseup = undefined;
+						};
+						window.onmousemove(mEvent);
+					});
+				}
+			});
+			Fluid.attachView($("body"), BodyView, items);
+		</script>
+	</head>
+	<body> </body>
+</html>
