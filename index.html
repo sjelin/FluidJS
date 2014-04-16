@@ -157,8 +157,7 @@
 				setControls: function(init, $el) {
 					if(init) $el.mousedown(function(mEvent) {
 						var itms = items.get();
-						var item = itms[parseInt(
-									$(this).parent().attr("modelIndex"))];
+						var item=itms[parseInt($(this).attr("modelIndex"))];
 						var initY = mEvent.screenY;
 						var initIndex = item.index;
 						var maxIndex = 0;
