@@ -1,10 +1,12 @@
 body {
 	font-family: Helvetica, san-serif;
+	margin: 1em;
+	padding: 0px;
 }
 
 .Models, .Views {
-	width: 50%;
+	width: calc(50% - 2em);
 	position: absolute;
 }
 
-.Views {right: 0px;}
+.Views {right: 1em;}
