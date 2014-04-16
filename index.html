@@ -148,8 +148,8 @@
 					if(drag != null)
 						klass += " drag";
 					drag = (((drag || 0) + 16) % 32 + 32) % 32 - 16
-					var style = "top: " + (32*index+(drag||0)) +
-								"px; color: #"+color+"; background: #"+bg;
+					var style = "top: "+(32*index+drag)+"px; color: #"+
+								color+"; background: #"+bg;
 					return {class: klass, style: style, name: name,
 							modelIndex: modelIndex};
 				},
