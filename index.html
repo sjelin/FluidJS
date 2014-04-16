@@ -72,6 +72,7 @@
 				calc: function(items) {
 					var models = [];
 					var views = [];
+					var cnt = 0;
 					for(var i = 0; i < items.length; i++)
 						if(items[i] != null) {
 							models.push(new ModelView(i, items[i].index,
@@ -81,9 +82,11 @@
 								items[i].name, items[i].color,
 								items[i].bg, items[i].hide,
 								items[i].drag));
+							if(!items.hide)
+								cnt++;
 						}
 					return {models: models, views: views, items_style: 
-							"height: "+(models.length*23)+"px"};
+							"height: "+(cnt*23)+"px"};
 				},
 				setControls: function(init, $el) {
 					if(init) $el.find(".new").click(function() {
