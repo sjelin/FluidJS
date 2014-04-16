@@ -67,9 +67,10 @@
 			}, {
 				index: 5, name: "Amy Q.", color: "FFFFFF", bg: "FF6699"
 			}]);
+			var lastDragged = new Fluid.model();
 			var BodyView = Fluid.compileView({
 				template: $("#body-tmplt").html(),
-				calc: function(items) {
+				calc: function(items, lastDragged) {
 					var models = [];
 					var views = [];
 					var cnt = 0;
@@ -81,7 +82,7 @@
 							views.push(new ViewView(i, items[i].index,
 								items[i].name, items[i].color,
 								items[i].bg, items[i].hide,
-								items[i].drag));
+								items[i].drag, i == lastDragged));
 							if(!items[i].hide)
 								cnt++;
 						}
@@ -145,12 +146,14 @@
 			});
 			var ViewView = Fluid.compileView({
 				template: $("#view-tmplt").html(),
-				calc: function(modelIndex,index,name,color,bg,hide,drag) {
+				calc: function(modelIndex,index,name,color,bg,hide,drag,ld){
 					var klass = "item";
 					if(hide)
 						klass += " hidden";
 					if(drag != null)
 						klass += " drag";
+					if(ld)
+						klass += " last-dragged";
 					drag = (((drag || 0) + 16) % 32 + 32) % 32 - 16
 					var style = "top: "+(32*index+drag)+"px; color: #"+
 								color+"; background: #"+bg;
@@ -160,7 +163,9 @@
 				setControls: function(init, $el) {
 					if(init) $el.mousedown(function(mEvent) {
 						var itms = items.get();
-						var item=itms[parseInt($(this).attr("modelIndex"))];
+						var i = parseInt($(this).attr("modelIndex"));
+						lastDragged.set(i);
+						var item = itms[i];
 						var initY = mEvent.screenY;
 						var initIndex = item.index;
 						var maxIndex = 0;
@@ -197,7 +202,7 @@
 				}
 			});
 			window.onload = function() {
-				Fluid.attachView($("body > div"), BodyView, items);
+				Fluid.attachView($("body > div"),BodyView,items,lastDragged);
 			};
 		</script>
 	</head>

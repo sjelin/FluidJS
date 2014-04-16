@@ -78,6 +78,9 @@ a {
 	transition: transform 0.5s, background-color 0.5s, color 0.5s, opacity 0.5s;
 	-webkit-transform: scale(1.1);
 	transform: scale(1.1);
+}
+
+.Views .last-dragged {
 	z-index: 5;
 }
 
