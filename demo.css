@@ -19,9 +19,8 @@ a {
 }
 .Views {right: 1em;}
 
-.Models .items {
+.Models .header.item, .Models .items {
 	position: relative;
-	top: 3em;
 }
 
 .Models .item {
