@@ -15,7 +15,8 @@
 					<p>Edit the name/color of the views here, or add/remove them</p>
 					<div class="header item">
 						<p class="name">Name</p>
-						<p class="color">Color</p>
+						<p class="color">Text Color</p>
+						<p class="bg">Background Color</p>
 					</div>
 					<div class="items">
 						[[models]]
@@ -40,6 +41,9 @@
 				<div class="color">
 					<input maxlength=6 type="text" value={{color}}></input>
 				</div>
+				<div class="bg">
+					<input maxlength=6 type="text" value={{bg}}></input>
+				</div>
 			</div>
 		</script>
 		<script type="text/template" id="view-tmplt">
@@ -50,17 +54,17 @@
 		</script>
 		<script type="text/JavaScript">
 			var items = new Fluid.model([{
-				index: 0, name: "Steve J.", color: "FAFAFA"
+				index: 0, name: "Steve J.", color: "#000000", bg: "FAFAFA"
 			}, {
-				index: 0, name: "Bill G.", color: "56C5FF"
+				index: 0, name: "Bill G.", color: "#000000", bg: "56C5FF"
 			}, {
-				index: 0, name: "Jeff B.", color: "FF9900"
+				index: 0, name: "Jeff B.", color: "#000000", bg: "FF9900"
 			}, {
-				index: 0, name: "Larry P.", color: "DD4B39"
+				index: 0, name: "Larry P.", color: "#000000", bg: "DD4B39"
 			}, {
-				index: 0, name: "Mark Z.", color: "3B5998"
+				index: 0, name: "Mark Z.", color: "#000000", bg: "3B5998"
 			}, {
-				index: 0, name: "Amy Q.", color: "FF78A2"
+				index: 0, name: "Amy Q.", color: "#000000", bg: "FF78A2"
 			}]);
 			var BodyView = Fluid.compileView({
 				template: $("#body-tmplt").html(),
@@ -71,10 +75,11 @@
 						if(items[i] != null) {
 							models.push(new ModelView(i, items[i].index,
 								items[i].name, items[i].color,
-								items[i].hide));
+								items[i].bg, items[i].hide));
 							views.push(new ViewView(i, items[i].index,
 								items[i].name, items[i].color,
-								items[i].hide, items[i].drag));
+								items[i].bg, items[i].hide,
+								items[i].drag));
 						}
 					return {models: models, views: views};
 				},
@@ -96,13 +101,13 @@
 			});
 			var ModelView = Fluid.compileView({
 				template: $("#model-tmplt").html(),
-				calc: function(modelIndex, index, name, color, hide) {
+				calc: function(modelIndex, index, name, color, bg, hide) {
 					var klass = "item";
 					if(hide)
 						klass += " hidden";
 					var style = "top: "+(40*index)+"px";
 					return {class: klass, style: style, name: name,
-							color: color, modelIndex: modelIndex};
+							color: color, bg: bg, modelIndex: modelIndex};
 				},
 				setControls: function(init, $el) {
 					if(init) {
@@ -123,6 +128,7 @@
 										parseInt($this.attr("modelIndex"))];
 							item.name = $this.find(".name input").val();
 							item.color = $this.find(".color input").val();
+							item.bg = $this.find(".bg input").val();
 							items.alert();
 						};
 						$el.find("input").keydown(key);
@@ -133,15 +139,16 @@
 			});
 			var ViewView = Fluid.compileView({
 				template: $("#view-tmplt").html(),
-				calc: function(modelIndex, index, name, color, hide, drag) {
+				calc: function(modelIndex,index,name,color,bg,hide,drag) {
 					var klass = "item";
 					if(hide)
 						klass += " hidden";
 					if(drag != null)
 						klass += "drag";
-					var style = "top: "+(40*index+drag)+"px";
+					var style = "top: " + (40*index+drag) + "px; color: #" +
+								color + "; background: #" + bg;
 					return {class: klass, style: style, name: name,
-							color: color, modelIndex: modelIndex};
+							modelIndex: modelIndex};
 				},
 				setControls: function(init, $el) {
 					if(init) $el.find(".drag").mousedown(function(mEvent) {
