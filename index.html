@@ -117,7 +117,7 @@
 									itms[j].index--;
 							items.alert();
 						});
-						$el.find("input").change(function() {
+						$el.find("input").keypress(function() {
 							var $this = $(this).parent().parent();
 							var item = items.get()[
 										parseInt($this.attr("modelIndex"))];
