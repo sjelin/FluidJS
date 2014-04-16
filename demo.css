@@ -6,6 +6,11 @@ body {
 
 a {
 	cursor: pointer;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-o-user-select: none;
+	user-select: none;
 }
 
 .Models, .Views {
@@ -13,6 +18,15 @@ a {
 	position: absolute;
 }
 .Views {right: 1em;}
+
+.Models .items {
+	position: relative;
+}
+
+.Models .item {
+	width: 100%;
+	position: absolute;
+}
 
 .Models .name, .Models .color, .Models .bg {
 	width: calc(33% - 0.34em);
