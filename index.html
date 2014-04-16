@@ -69,13 +69,12 @@
 					var views = [];
 					for(var i = 0; i < items.length; i++)
 						if(items[i] != null) {
-							models.push(new ModelView(modelIndex: i,
-								items[i].index, items[i].name,
-								items[i].color, items[i].hide));
-							views.push(new ViewView(modelIndex: i,
-								items[i].index, items[i].name,
-								items[i].color, items[i].hide,
-								items[i].drag));
+							models.push(new ModelView(i, items[i].index,
+								items[i].name, items[i].color,
+								items[i].hide));
+							views.push(new ViewView(i, items[i].index,
+								items[i].name, items[i].color,
+								items[i].hide, items[i].drag));
 						}
 					return {models: models, views: views};
 				},
