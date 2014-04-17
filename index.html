@@ -8,7 +8,7 @@
 		<link type="text/css" rel="Stylesheet" href="demo.css" media="all" />
 		<script type="text/JavaScript" src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 		<script type="text/JavaScript" src="fluid.js"></script>
-		<script type="text/template" id="body-tmplt">
+		<script type="text/template" id="main-tmplt">
 			<h1>Fluid.js Demo</h1>
 			<div class="Models">
 				<h2>Models (ish)</h2>
@@ -52,6 +52,7 @@
 			</div>
 		</script>
 		<script type="text/JavaScript">
+			//Set models with initial data
 			var items = new Fluid.model([{
 				index: 0, name: "Steve J.", color: "FFFFFF", bg: "1E1E1E"
 			}, {
@@ -66,12 +67,16 @@
 				index: 5, name: "Amy Q.", color: "FFFFFF", bg: "FF6699"
 			}]);
 			var lastDragged = new Fluid.model();
-			var BodyView = Fluid.compileView({
-				template: $("#body-tmplt").html(),
+
+			//Declare main view
+			var MainView = Fluid.compileView({
+				template: $("#main-tmplt").html(),
+
 				calc: function(items, lastDragged) {
 					var models = [];
 					var views = [];
 					var cnt = 0;
+					//Render child views
 					for(var i = 0; i < items.length; i++)
 						if(items[i] != null) {
 							models.push(new ModelView(i, items[i].index,
@@ -84,10 +89,13 @@
 							if(!items[i].hide)
 								cnt++;
 						}
+
 					return {models: models, views: views, items_style: 
 							"height: "+(cnt*23)+"px"};
 				},
+
 				setControls: function(init, $el) {
+					//Add event to "new" button
 					if(init) $el.find(".new").click(function() {
 						var itms = items.get();
 						var cnt = 0;
@@ -104,8 +112,11 @@
 					});
 				}
 			});
+
+			//Declare view for each "model"
 			var ModelView = Fluid.compileView({
 				template: $("#model-tmplt").html(),
+
 				calc: function(modelIndex, index, name, color, bg, hide) {
 					var klass = "item";
 					if(hide)
@@ -114,7 +125,9 @@
 					return {class: klass, style: style, name: name,
 							color: color, bg: bg, modelIndex: modelIndex};
 				},
+
 				setControls: function(init, $el) {
+					//Add events to the delete button & when text is changed
 					if(init) {
 						$el.find(".delete").click(function() {
 							var i = parseInt(
@@ -142,8 +155,11 @@
 					}
 				}
 			});
+
+			//Declare view for the actual output
 			var ViewView = Fluid.compileView({
 				template: $("#view-tmplt").html(),
+
 				calc: function(modelIndex,index,name,color,bg,hide,drag,ld){
 					var klass = "item";
 					if(hide)
@@ -158,7 +174,9 @@
 					return {class: klass, style: style, name: name,
 							modelIndex: modelIndex};
 				},
+
 				setControls: function(init, $el) {
+					//Set up event to dragging views around
 					if(init) $el.mousedown(function(mEvent) {
 						var itms = items.get();
 						var i = parseInt($(this).attr("modelIndex"));
@@ -199,8 +217,10 @@
 					});
 				}
 			});
+
+			//Attach view to the DOM
 			window.onload = function() {
-				Fluid.attachView($("body > div"),BodyView,items,lastDragged);
+				Fluid.attachView($("body > div"),MainView,items,lastDragged);
 			};
 		</script>
 	</head>
