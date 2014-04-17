@@ -4,6 +4,9 @@ Fluid.js
 Fluid.js is a new Model View Controller (MVC) designed to make it easier for
 webapps to have smooth transitions and animations.
 
+This is only a very early version of the MVC, intended primarily as a proof
+of concept.
+
 ### Why?
 
 The animations and smooth transitions of native apps are one of the major
@@ -61,10 +64,10 @@ Once this has been done, `model` will have the following methods:
 	model.alert(); //Calls all listening functions
 ```
 
-Clearly there are a lot of features missing here.  This is a very early
-version of the MVC (basically just a proof of concept), and the innovation is
-really all about the way the views are rendered, so for now this very-minimal
-implementation of client-side models is being used.
+Clearly there are a lot of features missing here.  Because this is a very
+early version of Fluid.js, and because the innovation is really all about the
+way the views are rendered, this very-minimal implementation of client-side
+models is being used for now.
 
 Templating
 ==========
@@ -76,7 +79,7 @@ having to re-run the template from scratch.  Additionally, the templating
 language for Fluid.js needs to be able to express concepts like child views
 instead of just raw HTML injections.  Finally, Fuild.js needs to have
 explicit and limited syntax in its templating language so that content can be
-quickly updated.
+quickly understood and updated.
 
 In that vain, there are three ways to inject values/views in Fluid.js'
 templating language:
@@ -98,21 +101,17 @@ templating language:
 	The above will inject the view or array of views in the variable named
 	`viewName`
 
-What's more non-empty templates must have a single outer-most tag which
-everything in the template (except the tag itself) is a child of.
-
+WARNING:  Some browsers have weird ways of parsing tags like `<body>`
 
 ### Example
 
 Body Template:
 
 ```html
-	<body>
-		[[header]]
-		<ul class="id-cards">
-			[[idCards*]]
-		</ul>
-	</body>
+	[[header]]
+	<ul class="id-cards">
+		[[idCards*]]
+	</ul>
 ```
 
 Header Template:
@@ -221,12 +220,6 @@ The parameters of `setControls` are:
 6. Etc.
 
 By default, `setControls` is set to `function(){}`
-
-Final Notes
-===========
-
-This is a first draft of this software.  There are indeed many features
-missing.  But that's to be expected.
 
 Discuss
 =======
