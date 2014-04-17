@@ -227,8 +227,7 @@ By default, `setControls` is set to `function(){}`
 Discuss
 =======
 
-Discuss this MVC on Hacker News:
-[link coming soon]()
+[Discuss this on Hacker News](https://news.ycombinator.com/item?id=7601852)
 
 Also feel free to contact me through any of the normal GitHub methods.
 
