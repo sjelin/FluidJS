@@ -26,6 +26,7 @@ var Fluid = (function($) {
  *     Fluid.model     *
 \**********************/
 
+	//See README.md for spec
 	fluid.model = function(init) {
 		this.val = init;
 		this.listeners = [];
@@ -46,12 +47,30 @@ var Fluid = (function($) {
  *  Fluid.compileView  *
 \**********************/
 
-/*	View instances have the following properties & method:
+/****************************************************************************
+ *	HOW VIEWS WORK
+ ****************************************************************************
  *
+ *	When Fluid.compileView() is called, the template parameter is heavily
+ *	modified.  In elements where attributes or text are marked to be filled
+ *	in by the MVC, the {{}} commands are removed and the element is given
+ *	a special attribute with a unique random name (something like
+ *	"_egcer5ghz88h0k9") so that it can quickly be found by jQuery later.  In
+ *	places where child views are to be injected, a hidden <span> tag is added
+ *	in their place, with a unique random id (similar format) so that it can
+ *	be found by jQuery later.
+ *
+ *	Later, when the view is being updated/initialized, these special
+ *	attributes are used to locate which elements need to be updated in which
+ *	ways, and these special <span> tags are used to point to where the child
+ *	views should be placed.
+ *
+ ****************************************************************************
+ *
+ *	View instances have the following properties & methods:
  *
  *	calc() -	The function passed when the view class was declared
  *	setControls() - The function passed when the view class was declared  
- *
  *
  *	getFreshJQ -	Generates a jQuery object based on the template ready to
  *					be updated based on the results of calc()
@@ -59,13 +78,11 @@ var Fluid = (function($) {
  *	textCommands -	map ("varname" -> ["idAttr"])
  *	viewCommands - map ("viewname" -> "id")
  *
- *
  *	state -	The array which was last used as arguments for the calc()
  *			function.  Or, if the calc function hasn't been called yet, the
  *			array of arguments passed into the constructor.
  *	vals -	The last result of the calc() function, undefined if calc()
  *			hasn't been called yet
- *
  *
  *	$el -	The jQuery object which is the markup for the view.  Is undefined
  *			until update is called for the first time.
@@ -87,7 +104,7 @@ var Fluid = (function($) {
 			this.vals = {};
 		}
 
-		//Attrs
+		//Set attributes using the result of calc()
 		for(var vname in this.attrCommands) {
 			var val = newVals[vname];
 			if(!inited || this.vals[vname] != val)
@@ -98,7 +115,7 @@ var Fluid = (function($) {
 				}
 		}
 
-		//Text
+		//Set the text of some elements using the result of calc()
 		for(var vname in this.textCommands) {
 			var val = newVals[vname];
 			if(!inited || this.vals[vname] != val) {
@@ -109,7 +126,7 @@ var Fluid = (function($) {
 			}
 		}
 
-		//Views
+		//Update child views using the result of calc()
 		for(var vname in this.viewCommands) {
 			var view = newVals[vname];
 			var oldView = this.vals[vname];
@@ -117,6 +134,8 @@ var Fluid = (function($) {
 						this.$el:this.$el.find("#"+this.viewCommands[vname]);
 
 			if(isArray(view)) {
+				//Turn oldView into an array containing just the old elements
+				//which should be kept & updated.  Remove all else
 				if(isArray(oldView)) {
 					var numToKeep = Math.min(view.length, oldView.length);
 					if((numToKeep > 0) && !sameProto(oldView[0], view[0]))
@@ -130,6 +149,7 @@ var Fluid = (function($) {
 						oldView.$el.remove();
 					oldView = [];
 				}
+				//Update old stuff and inject new stuff
 				for(var i = 0; i < oldView.length; i++) {
 					oldView[i].update(view[i]);
 					view[i] = oldView[i];
@@ -141,6 +161,7 @@ var Fluid = (function($) {
 			} else {
 				var insertFresh = true;
 				if(inited) {
+					//Remove or update old content
 					if(isArray(oldView)) {
 						for(var i = 0; i < oldView.length; i++)
 							oldView[i].$el.remove();
@@ -153,6 +174,7 @@ var Fluid = (function($) {
 					}
 				}
 				if(insertFresh) {
+					//Insert new content (old content was removed)
 					view.update();
 					$elem.before(view.$el);
 				}
@@ -163,6 +185,7 @@ var Fluid = (function($) {
 		this.setControls.apply(this, [!inited, this.$el].concat(this.state));
 	}
 
+	//See README.md and the giant comment a little ways back
 	fluid.compileView = function(props) {
 		function View() {
 			this.state = Array.prototype.slice.call(arguments, 0);
@@ -171,11 +194,10 @@ var Fluid = (function($) {
 		View.prototype.calc = props.calc || function(){return new Object();};
 		View.prototype.setControls = props.setControls || function(){};
 		
-		//Template
+		//Modify Template
 		function getNewIDAttr() {
 			return "_"+Math.random().toString(36).substr(2);
 		}
-
 		View.prototype.attrCommands = {};
 		View.prototype.textCommands = {};
 		View.prototype.viewCommands = {};

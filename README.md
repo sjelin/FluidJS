@@ -105,12 +105,12 @@ WARNING:  Some browsers have weird ways of parsing tags like `<body>`
 
 ### Example
 
-Body Template:
+Main Template:
 
 ```html
 	[[header]]
 	<ul class="id-cards">
-		[[idCards*]]
+		[[idCards]]
 	</ul>
 ```
 
@@ -162,10 +162,10 @@ There are two types of views: *Root Views* and *Child Views*.
 *Root Views* are not the child of any other view.  They are attached directly
 to the DOM, and are rendered according to information coming directly from
 models.  *Child Views* on the other hand, have a parent view.  They are
-linked to the DOM only through its parent view, and is rendered based solely
-on the information its parent provides it.  Thus, information percolates
-from the models, to the root views, through the child views, down to the leaf
-views (views with no children).
+linked to the DOM only through their parent view, and are rendered based
+solely on the information that their parents provide them.  Thus, information
+percolates from the models, to the root views, through the child views, down
+to the leaf views (views with no children).
 
 Root views are attached to the DOM/models as follows:
 
@@ -173,9 +173,9 @@ Root views are attached to the DOM/models as follows:
 	Fluid.attachView($elem, ViewClass[, model1[, model2[, ...]]])
 ```
 
-Where `$elem` is the object which the root view will be controlling from now
-on, `ViewClass` is the class of the root view, and `model1, model2, ...` are
-the models which the root view will be based off of.
+Where `$elem` is an object which will be replaced by the root view,
+`ViewClass` is the class of the root view, and `model1, model2, ...` are the
+models which the root view will be based off of.
 
 Child views are attached to their parent during the `calc` function through
 commands like the following:
@@ -188,6 +188,9 @@ Where `ret` is the object which `calc` will return, `childView` is the name
 of the child view in the template, `ViewClass` is the class of the child
 view, and `param1, param2, ...` is the information which the child view will
 be based off.
+
+To see this all in action, check out 
+[the example](http://sjelin.github.io/FluidJS).
 
 ### Declaring new classes of view, details
 
@@ -224,7 +227,10 @@ By default, `setControls` is set to `function(){}`
 Discuss
 =======
 
-First I need to make an example page & proof read this README :O
+Discuss this MVC on Hacker News:
+[link coming soon]()
+
+Also feel free to contact me through any of the normal GitHub methods.
 
 License
 =======
