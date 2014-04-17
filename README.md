@@ -227,7 +227,7 @@ By default, `setControls` is set to `function(){}`
 Discuss
 =======
 
-Will at link at 1200 PST on the 16th
+[Discuss this on Hacker News](https://news.ycombinator.com/item?id=7606183)
 
 Also feel free to contact me through any of the normal GitHub methods.
 
