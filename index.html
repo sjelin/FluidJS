@@ -9,27 +9,25 @@
 		<script type="text/JavaScript" src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 		<script type="text/JavaScript" src="fluid.js"></script>
 		<script type="text/template" id="body-tmplt">
-			<div class="wrapper">
-				<h1>Fluid.js Demo</h1>
-				<div class="Models">
-					<h2>Models (ish)</h2>
-					<p>Edit the name/color of the views here, or add/remove them</p>
-					<div class="header item">
-						<p class="name">Name</p>
-						<p class="color">Text Color</p>
-						<p class="bg">Background Color</p>
-					</div>
-					<div class="items" style={{items_style}}>
-						[[models]]
-					</div>
-					<a class="new">+ Add new</a>
+			<h1>Fluid.js Demo</h1>
+			<div class="Models">
+				<h2>Models (ish)</h2>
+				<p>Edit the name/color of the views here, or add/remove them</p>
+				<div class="header item">
+					<p class="name">Name</p>
+					<p class="color">Text Color</p>
+					<p class="bg">Background Color</p>
 				</div>
-				<div class="Views">
-					<h2>Views (ish)</h2>
-					<p>Below the views are rendered.  You can also drag them around</p>
-					<div class="items"> 
-						[[views]]
-					</div>
+				<div class="items" style={{items_style}}>
+					[[models]]
+				</div>
+				<a class="new">+ Add new</a>
+			</div>
+			<div class="Views">
+				<h2>Views (ish)</h2>
+				<p>Below the views are rendered.  You can also drag them around</p>
+				<div class="items"> 
+					[[views]]
 				</div>
 			</div>
 		</script>
