@@ -1,7 +1,7 @@
 Fluid.js
 ========
 
-Fluid.js is a new Model View Controler (MVC) designed to make it easier for
+Fluid.js is a new Model View Controller (MVC) designed to make it easier for
 webapps to have smooth transitions and animations.
 
 ### Why?
@@ -16,7 +16,7 @@ use them.
 This is totally unacceptable.  The WebKit team introduced CSS transitions
 [7 years ago](https://www.webkit.org/blog/138/css-animation/).  More complex
 animations using `keyframes` date back five years.  These CSS features are
-actually perfectly desgined to give webapps the missing dynamic feel of a
+actually perfectly designed to give webapps the missing dynamic feel of a
 native app.  Yet, these features are barely used.  The reason has to do with
 the way that most of our webapps are rendered.
 
@@ -44,15 +44,6 @@ Because of this complexity, we suggest that you look at
 [our example](http://sjelin.github.io/FluidJS) regularly when reading this
 document.
 
-Philosophy
-==========
-
-We believe that CSS is the appropriate place for transitions/animations to
-be defined.  While better browser support might be reached with JavaScript,
-animations are a non-critical (though important) feature, with fairly good
-support, and putting animation code into JavaScript would clutter the
-codebase of both the people using this MVC and the MVC itself.
-
 Models
 ======
 
@@ -70,19 +61,22 @@ Once this has been done, `model` will have the following methods:
 	model.alert(); //Calls all listening functions
 ```
 
-Boring.  Simple.  Classic.
+Clearly there are a lot of features missing here.  This is a very early
+version of the MVC (basically just a proof of concept), and the innovation is
+really all about the way the views are rendered, so for now this very-minimal
+implementation of client-side models is being used.
 
 Templating
 ==========
 
-Fluid.js is tighly coupled to a templating engine.  The reason for this is
+Fluid.js is tightly coupled to a templating engine.  The reason for this is
 that more so than other MVCs Fluid.js needs to really understand how a
 template works so that in can update the produced dynamically instead of
 having to re-run the template from scratch.  Additionally, the templating
 language for Fluid.js needs to be able to express concepts like child views
-instead of just raw HTML injections.  Finally, Fuild.js needs to have explict
-and limited syntax in its templating language so that content can be quickly
-updated.
+instead of just raw HTML injections.  Finally, Fuild.js needs to have
+explicit and limited syntax in its templating language so that content can be
+quickly updated.
 
 In that vain, there are three ways to inject values/views in Fluid.js'
 templating language:
@@ -139,7 +133,7 @@ ID Card Template:
 Views
 =====
 
-### Delaring new classes of views, an overview
+### Declaring new classes of views, an overview
 
 New classes of views are declared as follows:
 
@@ -169,7 +163,7 @@ There are two types of views: *Root Views* and *Child Views*.
 *Root Views* are not the child of any other view.  They are attached directly
 to the DOM, and are rendered according to information coming directly from
 models.  *Child Views* on the other hand, have a parent view.  They are
-linked to the DOM only through its parent view, and is rendered based soley
+linked to the DOM only through its parent view, and is rendered based solely
 on the information its parent provides it.  Thus, information percolates
 from the models, to the root views, through the child views, down to the leaf
 views (views with no children).
@@ -180,7 +174,7 @@ Root views are attached to the DOM/models as follows:
 	Fluid.attachView($elem, ViewClass[, model1[, model2[, ...]]])
 ```
 
-Where `$elem` is the object which the root view will be controling from now
+Where `$elem` is the object which the root view will be controlling from now
 on, `ViewClass` is the class of the root view, and `model1, model2, ...` are
 the models which the root view will be based off of.
 
@@ -196,7 +190,7 @@ of the child view in the template, `ViewClass` is the class of the child
 view, and `param1, param2, ...` is the information which the child view will
 be based off.
 
-### Delaring new classes of view, details
+### Declaring new classes of view, details
 
 #### `template`
 
