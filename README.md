@@ -140,7 +140,8 @@ New classes of views are declared as follows:
 	var ViewClass = Fluid.compileView({
 		template: /* String */,
 		calc: /* Function */,
-		setControls: /* Function */
+		setControls: /* Function */,
+		noMemoize: /* boolean */
 	});
 ```
 
@@ -154,6 +155,12 @@ variable names in the template.
 
 The `setControls` function is in charge of attaching all the relevant events
 to a view.
+
+The `noMemoize` property says that the MVC should always rerun the rendering
+code, even if it seems like the view is being passed the same values twice.
+This flag is particularly important if one of the arguments is an opaque
+object (e.g. instance of a class with private variables), because the MVC may
+not be able to detect changes in the internal state of the arguments.
 
 ### Root Views vs Child Views
 
@@ -223,6 +230,18 @@ The parameters of `setControls` are:
 6. Etc.
 
 By default, `setControls` is set to `function(){}`
+
+TODO
+====
+
+1.	Allow `{{}}` injections inside of strings (e.g.
+`<a href="{{domain}}.com"/>`).
+2.  Allow `{{}}` text node injections at any point in the DOM (i.e. remove
+the constraint that it must be the sole content of an element).  This can be
+done by putting a `display: none` element before and after the text node,
+then searching for the text node (using `.contents()` if it isn't a root),
+and then replace the old one usings `document.createTextNode`.
+
 
 Discuss
 =======

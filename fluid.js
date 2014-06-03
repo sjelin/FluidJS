@@ -71,6 +71,11 @@ var Fluid = (function($) {
  *
  *	calc() -	The function passed when the view class was declared
  *	setControls() - The function passed when the view class was declared  
+ *	noMemoize -	A flag saying that the render code for this view should
+ *				always be rerun, even if the arguments to the view look from
+ *				the outside like they are the same as last time.  Note that
+ *				this flag may be turned on  automatically during runtime by
+ *				the MVC if the MVC decides it would be more efficient.
  *
  *	getFreshJQ -	Generates a jQuery object based on the template ready to
  *					be updated based on the results of calc()
@@ -84,10 +89,15 @@ var Fluid = (function($) {
  *	vals -	The last result of the calc() function, undefined if calc()
  *			hasn't been called yet
  *
+ *	oldStateHash -	A hash (in some sense) of the state the last time the
+ *					update() funtion was run.  undefined if the update()
+ *					function has not yet been run or noMemoize is set
  *	$el -	The jQuery object which is the markup for the view.  Is undefined
  *			until update is called for the first time.
  *	update([view]) - Does the following:
  *		1.	If the view parameter was specified, this.state = view.state
+ *		2.	Unless the noMemoize flag is set, if the current state was used
+ *			in the last update() call, skip the remaining steps
  *		2.	Run calc()
  *		3.	Use the result of the calc function to update this.$el
  *		4.	Call setControls() with the correct params
@@ -96,6 +106,21 @@ var Fluid = (function($) {
 	AbstractView.prototype.update = function(view)
 	{
 		this.state = (view || {}).state || this.state;
+		if(!this.noMemoize) {
+			var stateHash = JSON.stringify(this.state);
+			if(stateHash.length < 500 || ((stateHash.length < 5000) &&
+					Array.prototype.filter.call(stateHash,
+						function(x) {return x == '"';}) < 100)) {
+				if(stateHash == this.oldStateHash)
+					return;
+				else
+					this.oldStateHash = stateHash;
+			} else {
+				this.noMemoize = true;
+				this.oldStateHash = undefined;
+			}
+		}
+
 		var newVals = this.calc.apply(this, this.state);
 
 		var inited = this.vals != null;
@@ -202,6 +227,7 @@ var Fluid = (function($) {
 		View.prototype.textCommands = {};
 		View.prototype.viewCommands = {};
 		props.template = props.template || "";
+		
 		props.template =
 			//Attribute Commands
 			props.template.replace(/[^\s]+={{\s*\w+\s*}}/g, function(match) {
