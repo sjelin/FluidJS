@@ -131,6 +131,8 @@ var Fluid = (function($) {
 
 		//Set attributes using the result of calc()
 		for(var vname in this.attrCommands) {
+			if(!newVals.hasOwnProperty(vname))
+				continue;
 			var val = newVals[vname];
 			if(!inited || this.vals[vname] != val)
 				for(var idAttr in this.attrCommands[vname]) {
@@ -142,6 +144,8 @@ var Fluid = (function($) {
 
 		//Set the text of some elements using the result of calc()
 		for(var vname in this.textCommands) {
+			if(!newVals.hasOwnProperty(vname))
+				continue;
 			var val = newVals[vname];
 			if(!inited || this.vals[vname] != val) {
 				var idAttrs = this.textCommands[vname];
@@ -153,6 +157,8 @@ var Fluid = (function($) {
 
 		//Update child views using the result of calc()
 		for(var vname in this.viewCommands) {
+			if(!newVals.hasOwnProperty(vname))
+				continue;
 			var view = newVals[vname];
 			var oldView = this.vals[vname];
 			var $elem = this.$el.attr("id") == this.viewCommands[vname] ?

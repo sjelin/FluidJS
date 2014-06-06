@@ -212,6 +212,14 @@ the values of the models which the view is being based on.  If the view is
 a child view, then the parameters to the `calc` function are the values which
 were passed to it by its parent's `calc` function.
 
+If the returned object is missing a property needed to fill in the template,
+then that part of the template will not be updated.  For instance, if the
+template says an input box should be filled in by the `val` property, but the
+`val` property is missing from the object returned by `calc`, then whatever
+the user has typed into the input box will be left alone.  Note that there is
+a difference between a property being set to `undefined` and the property
+not being specified.
+
 Primarily, the properties of the object returned by the `calc` function are
 used directly to fill in the template.  However, there may be special
 properties in the future.
