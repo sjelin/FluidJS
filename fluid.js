@@ -224,6 +224,7 @@ var Fluid = (function($) {
 		View.prototype = new AbstractView();
 		View.prototype.calc = props.calc || function(){return new Object();};
 		View.prototype.setControls = props.setControls || function(){};
+		View.prototype.noMemoize = !!props.noMemoize;
 		
 		//Modify Template
 		function getNewIDAttr() {
