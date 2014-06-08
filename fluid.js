@@ -92,6 +92,11 @@ var Fluid = (function($) {
  *	oldStateHash -	A hash (in some sense) of the state the last time the
  *					update() funtion was run.  undefined if the update()
  *					function has not yet been run or noMemoize is set
+ *	memoTime -	A measure of the amount of time it takes to see if the update
+ *				should be skiped due to memoization
+ *	updateTime -	A measure of the amount of time it takes to run the
+ *					update code.  Does not count time saved or lost because
+ *					of memoization, nor time spent updating child views
  *	$el -	The jQuery object which is the markup for the view.  Is undefined
  *			until update is called for the first time.
  *	update([view]) - Does the following:
@@ -106,20 +111,20 @@ var Fluid = (function($) {
 	AbstractView.prototype.update = function(view)
 	{
 		this.state = (view || {}).state || this.state;
-		if(!this.noMemoize) {
+		if(!this.noMemoize && ((this.memoTime||0)<=(this.updateTime||0)/2)) {
+			var memoStart = new Date().getTime();
 			var stateHash = JSON.stringify(this.state);
-			if(stateHash.length < 500 || ((stateHash.length < 5000) &&
-					Array.prototype.filter.call(stateHash,
-						function(x) {return x == '"';}) < 100)) {
-				if(stateHash == this.oldStateHash)
-					return;
-				else
-					this.oldStateHash = stateHash;
-			} else {
-				this.noMemoize = true;
-				this.oldStateHash = undefined;
-			}
-		}
+			var skip = stateHash == this.oldStateHash;
+			var memoTime = new Date().getTime() - memoStart;
+			this.memoTime = ((this.memoTime || memoTime)*4+memoTime)/5;
+			if(skip)
+				return;
+			else
+				this.oldStateHash = stateHash;
+		} else
+			this.oldStateHash = undefined;
+
+		var updateStart = new Date().getTime();
 
 		var newVals = this.calc.apply(this, this.state);
 
@@ -155,6 +160,15 @@ var Fluid = (function($) {
 			}
 		}
 
+		//Update a child view, but don't count that time towards updateTime
+		function updateView(view, viewInfo) {
+			updateStart -= new Date().getTime();
+			if(arguments.length == 1)
+				view.update();
+			else
+				view.update(viewInfo);
+			updateStart += new Date().getTime();
+		}
 		//Update child views using the result of calc()
 		for(var vname in this.viewCommands) {
 			if(!newVals.hasOwnProperty(vname))
@@ -182,11 +196,11 @@ var Fluid = (function($) {
 				}
 				//Update old stuff and inject new stuff
 				for(var i = 0; i < oldView.length; i++) {
-					oldView[i].update(view[i]);
+					updateView(oldView[i], view[i]);
 					view[i] = oldView[i];
 				}
 				for(var i = oldView.length; i < view.length; i++) {
-					view[i].update();
+					updateView(view[i]);
 					$elem.before(view[i].$el);
 				}
 			} else {
@@ -200,13 +214,13 @@ var Fluid = (function($) {
 						oldView.$el.remove();
 					} else {
 						insertFresh = false;
-						oldView.update(view);
+						updateView(oldView, view);
 						newVals[vname] = oldView;
 					}
 				}
 				if(insertFresh) {
 					//Insert new content (old content was removed)
-					view.update();
+					updateView(view);
 					$elem.before(view.$el);
 				}
 			}
@@ -214,6 +228,10 @@ var Fluid = (function($) {
 
 		this.vals = newVals;
 		this.setControls.apply(this, [!inited, this.$el].concat(this.state));
+
+
+		var updateTime = new Date().getTime() - updateStart;
+		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
 
 	//See README.md and the giant comment a little ways back
