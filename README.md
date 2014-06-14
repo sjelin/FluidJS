@@ -69,6 +69,10 @@ early version of Fluid.js, and because the innovation is really all about the
 way the views are rendered, this very-minimal implementation of client-side
 models is being used for now.
 
+It is worth noting that the listeners are called in the order they are
+installed.  So if you want to add some sort of post-processing to an model,
+simply add a listener directly after declaring the model.
+
 Templating
 ==========
 
@@ -98,8 +102,8 @@ templating language:
 
 3.	`[[viewName]]`
 
-	The above will inject the view or array of views in the variable named
-	`viewName`
+	The above will inject the view or collection of views in the variable
+	named `viewName`.
 
 WARNING:  Some browsers have weird ways of parsing tags like `<body>`
 
@@ -212,6 +216,16 @@ the values of the models which the view is being based on.  If the view is
 a child view, then the parameters to the `calc` function are the values which
 were passed to it by its parent's `calc` function.
 
+A collection of views can either be an array or an object.  By default, if a
+collection is an object, the order in which the views are inserted into the
+parent view is not well definied, and may even change over time as the parent
+view is updated.  If you would like the order to be consistant, you can
+specify the `__SORT__` property, which will sort the object's keys before
+using them.  You can use any truthy value for `__SORT__`, but if you use a
+function then that function will be used as the compare function for the
+sort.  Otherwise, keys are sorted by each character's Unicode code point
+value, according to the string conversion of the key.
+
 If the returned object is missing a property needed to fill in the template,
 then that part of the template will not be updated.  For instance, if the
 template says an input box should be filled in by the `val` property, but the
@@ -243,7 +257,7 @@ TODO
 ====
 
 1.	Allow `{{}}` injections inside of strings (e.g.
-`<a href="{{domain}}.com"/>`).
+`<a href="{{domain}}.com"></a>`).
 2.  Allow `{{}}` text node injections at any point in the DOM (i.e. remove
 the constraint that it must be the sole content of an element).  This can be
 done by putting a `display: none` element before and after the text node,

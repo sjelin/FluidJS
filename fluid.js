@@ -7,16 +7,6 @@ var Fluid = (function($) {
  *    Compatibility    *
 \**********************/
 
-	//Credit to John Resig for his implementation of Object.getPrototypeOf
-	function sameProto(x,y) {
-		if(typeof Object.getPrototypeOf === "function")
-			return Object.getPrototypeOf(x) == Object.getPrototypeOf(y);
-		else if(typeof "test".__proto__ === "object")
-			return x.__proto__ == y.__proto__;
-		else
-			return x.constructor.prototype == y.constructor.prototype;
-	}
-
 	//Credit to MDN
 	var isArray = Array.isArray || function(x) {
 		return Object.prototype.toString.call(x) === '[object Array]';
@@ -68,6 +58,8 @@ var Fluid = (function($) {
  ****************************************************************************
  *
  *	View instances have the following properties & methods:
+ *
+ *	typeHash - A random, unique string
  *
  *	calc() -	The function passed when the view class was declared
  *	setControls() - The function passed when the view class was declared  
@@ -179,21 +171,29 @@ var Fluid = (function($) {
 						this.$el:this.$el.find("#"+this.viewCommands[vname]);
 
 			if(isArray(view)) {
-				//Turn oldView into an array containing just the old elements
-				//which should be kept & updated.  Remove all else
-				if(isArray(oldView)) {
-					var numToKeep = Math.min(view.length, oldView.length);
-					if((numToKeep > 0) && !sameProto(oldView[0], view[0]))
-						numToKeep = 0;
-					while(oldView.length > numToKeep) {
-						oldView[oldView.length-1].$el.remove();
-						oldView.length--;
+				if(inited) {
+					//Turn oldView into an array containing just old elements
+					//which should be kept & updated.  Remove all else
+					if(isArray(oldView)) {
+						var numToKeep = Math.min(view.length,oldView.length);
+						for(var i = 0; i < numToKeep; i++)
+							if(oldView[i].typeHash != view[i].typeHash)
+								numToKeep = i+1;
+						while(oldView.length > numToKeep) {
+							oldView[oldView.length-1].$el.remove();
+							oldView.length--;
+						}
+					} else {
+						if(oldView instanceof AbstractView)
+							oldView.$el.remove();
+						else if(oldView instanceof Object)
+							for(var key in oldView)
+								if(oldView[key] instanceof AbstractView)
+									oldView[key].$el.remove(); 
+						oldView = [];
 					}
-				} else {
-					if(inited)
-						oldView.$el.remove();
+				} else
 					oldView = [];
-				}
 				//Update old stuff and inject new stuff
 				for(var i = 0; i < oldView.length; i++) {
 					updateView(oldView[i], view[i]);
@@ -203,25 +203,69 @@ var Fluid = (function($) {
 					updateView(view[i]);
 					$elem.before(view[i].$el);
 				}
-			} else {
+			} else if(view instanceof AbstractView) {
 				var insertFresh = true;
 				if(inited) {
 					//Remove or update old content
 					if(isArray(oldView)) {
 						for(var i = 0; i < oldView.length; i++)
 							oldView[i].$el.remove();
-					} else if(!sameProto(oldView, view)) {
-						oldView.$el.remove();
-					} else {
-						insertFresh = false;
-						updateView(oldView, view);
-						newVals[vname] = oldView;
-					}
+					} else if(oldView instanceof AbstractView) {
+						if(oldView.typeHash != view.typeHash)
+							oldView.$el.remove();
+						else {
+							insertFresh = false;
+							updateView(oldView, view);
+							newVals[vname] = oldView;
+						}
+					} else if(oldView instanceof Object)
+						for(var key in oldView)
+							if(oldView[key] instanceof AbstractView)
+								oldView[key].$el.remove(); 
 				}
 				if(insertFresh) {
 					//Insert new content (old content was removed)
 					updateView(view);
 					$elem.before(view.$el);
+				}
+			} else if(view instanceof Object) {
+				if(inited) {
+					if(isArray(oldView)) {
+						for(var i = 0; i < oldView.length; i++)
+							oldView[i].$el.remove();
+						oldView = {};
+					} else if(oldView instanceof AbstractView) {
+						oldView[i].$el.remove();
+						oldView = {};
+					} else if(oldView instanceof Object)
+						for(var k in oldView)
+							if(!(view[k] instanceof AbstractView) &&
+									(view[k].typeHash!=oldView[k].typeHash)){
+								oldView[k].$el.remove();
+								oldView[k] = undefined;
+							}
+				} else
+					oldView = {};
+				var keys = [];
+				for(var key in view)
+					if(view[key] instanceof AbstractView)
+						keys.push(key);
+				if(view.__SORT__) {
+					if(view.__SORT__ instanceof Function)
+						keys.sort(view.__SORT__);
+					else
+						keys.sort();
+				}
+				for(var i = keys.length-1; i >= 0; i--) {
+					var key = keys[i];
+					if(oldView[key] == undefined) {
+						updateView(view[key]);
+						(i+1 == keys.length ? $elem : view[keys[i+1]].$el
+							).before(view[key].$el);
+					} else {
+						updateView(oldView[key], view[key]);
+						view[key] = oldView[key];
+					}
 				}
 			}
 		}
@@ -234,6 +278,16 @@ var Fluid = (function($) {
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
 
+	//Generate a random string beginning with an "_".  Collisions should
+	//never happen
+	function rndStr() {
+		//We only use two digits of Math.random().toString(36) because
+		//Math.random() has at most 64-bits of entropy
+		return "_" +	Math.random().toString(36).substr(2,2) +
+						Math.random().toString(36).substr(2,2) +
+						Math.random().toString(36).substr(2,2) +
+						Math.random().toString(36).substr(2,2);
+	}
 	//See README.md and the giant comment a little ways back
 	fluid.compileView = function(props) {
 		function View() {
@@ -243,11 +297,9 @@ var Fluid = (function($) {
 		View.prototype.calc = props.calc || function(){return new Object();};
 		View.prototype.setControls = props.setControls || function(){};
 		View.prototype.noMemoize = !!props.noMemoize;
+		View.prototype.typeHash = rndStr();
 		
 		//Modify Template
-		function getNewIDAttr() {
-			return "_"+Math.random().toString(36).substr(2);
-		}
 		View.prototype.attrCommands = {};
 		View.prototype.textCommands = {};
 		View.prototype.viewCommands = {};
@@ -259,7 +311,7 @@ var Fluid = (function($) {
 				var i = match.indexOf("=");
 				var aname = match.substr(0, i);
 				var vname = match.substr(i+3, match.length-i-5).trim();
-				var idAttr = getNewIDAttr();
+				var idAttr = rndStr();
 				if(View.prototype.attrCommands[vname] == null)
 					View.prototype.attrCommands[vname] = {};
 				View.prototype.attrCommands[vname][idAttr] = aname;
@@ -268,7 +320,7 @@ var Fluid = (function($) {
 			}).replace(/>\s*{{\s*\w+\s*}}\s*</g, function(match) {
 				var vname = match.substr(1, match.length-2).trim();
 				vname = vname.substr(2, vname.length-4).trim();
-				var idAttr = getNewIDAttr();
+				var idAttr = rndStr();
 				if(View.prototype.textCommands[vname] == null)
 					View.prototype.textCommands[vname] = [];
 				View.prototype.textCommands[vname].push(idAttr);
@@ -276,7 +328,7 @@ var Fluid = (function($) {
 			//View Commands
 			}).replace(/\[\[\s*\w+\s*\]\]/g, function(match) {
 				var vname = match.substr(2, match.length-4).trim();
-				var id = getNewIDAttr();
+				var id = rndStr();
 				View.prototype.viewCommands[vname] = id;
 				return "<span id='"+id+"' style='display: none'></span>";
 			});
