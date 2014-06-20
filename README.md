@@ -52,7 +52,7 @@ Models
 
 Models in Fluid.js are very minimal.  A new model is declared as follows:
 ```js
-	var model = new Fluid.model(init);
+	var model = Fluid.newModel(init);
 ```
 
 Once this has been done, `model` will have the following methods:
@@ -62,6 +62,7 @@ Once this has been done, `model` will have the following methods:
 	model.set(val); //Sets & returns the value of the model
 	model.listen(fun); //Sets up fun to be called whenever the model changes
 	model.alert(); //Calls all listening functions
+	model.sub(prop); //Creates a submodel.  See details below
 ```
 
 Clearly there are a lot of features missing here.  Because this is a very
@@ -69,9 +70,82 @@ early version of Fluid.js, and because the innovation is really all about the
 way the views are rendered, this very-minimal implementation of client-side
 models is being used for now.
 
-It is worth noting that the listeners are called in the order they are
+It is worth noting that the listeners are called in the order ithey are
 installed.  So if you want to add some sort of post-processing to an model,
 simply add a listener directly after declaring the model.
+
+#### Submodels
+
+Let's say you create a model `person` for an person
+
+```js
+	var person = Fluid.newModel({name: 'Joe', age: 21});
+```
+
+But now suppose you want a model for just the person's age.  You could do so
+as follows:
+
+```js
+	var age = person.sub("age");
+```
+
+`age` is now a submodel of `person`.  It has all the same methods as a
+regular model, but they're all linked to the `age` attribute of `person`'s
+underlying value.  So `age.get()` is the same as `person.get().age`.
+Submodels work nearly the same as regular models, except for one caveat:
+submodels share a set of listeners with their parent.  In some cases this
+makes sense:
+
+```js
+	var person = Fluid.newModel({name: 'Joe', age: 21});
+	person.listen(updatePersonDisplay);
+	var age = person.sub("age");
+	age.set(22);//Calls updatePersonDisplay
+```
+
+In some cases it makes less sense:
+
+```js
+	var person = Fluid.newModel({name: 'Joe', age: 21});
+	var name = person.sub("name");
+	name.listen(updateNameDisplay);
+	var age = person.sub("age");
+	age.set(22);//Calls updateNameDisplay
+```
+
+Unfortunately, as javascript doesn't support deconstructors, you can't do
+much better.
+
+#### Alternate `set`/`get` Syntax
+
+Typing `model.get()` and `model.set(newVal)` can be annoying.  Especially if
+it's really more like
+
+```js
+	models.familyName.set(models.dad.get().lastName);
+```
+
+Ugh, so ugly, right?  Luckily, we've created two sets of alternate syntax.
+Use `model()` or `model.val` instead of `model.get()`, and `model(newVal)` or
+`model.val = newVal` instead of `model.set(newVal)`.  So we could rewrite the
+above line as:
+
+```js
+	models.familyName(models.dad().lastName);
+```
+
+or:
+
+```js
+	models.familyName.val = models.dad.val.lastName;
+```
+
+Look, it's an improvement, alright?
+
+Note that the `.val` syntax uses `Object.defineProperty`, and therefore only
+works on browsers where `Object.defineProperty` is supported on non-DOM
+objects.  What's more, `val` is a non-enumerable property, meaning that it
+will not show up in a `for...in` loop.
 
 Templating
 ==========
@@ -144,10 +218,14 @@ New classes of views are declared as follows:
 	var ViewClass = Fluid.compileView({
 		template: /* String */,
 		calc: /* Function */,
-		setControls: /* Function */,
+		addControls: /* Function */,
+		updateControls: /* Function */,
+		listeners: /* Object or Function */,
 		noMemoize: /* boolean */
 	});
 ```
+
+All the properties in the above code are optional.
 
 The `template` property is the template for the view.
 
@@ -157,8 +235,12 @@ along to child views.  Once these values are computed, they are returned in
 the form of an object, where the key names in the object line up with the
 variable names in the template.
 
-The `setControls` function is in charge of attaching all the relevant events
-to a view.
+The `addControls` and `updateControls` functions are in charge of attaching
+all the relevant events to a view.  `addControls` is only called when the
+view is initialized, `updateControls` is called on every update.
+
+`listeners` is described in the [Features for Forms](#features-for-forms)
+section.
 
 The `noMemoize` property says that the MVC should always rerun the rendering
 code, even if it seems like the view is being passed the same values twice.
@@ -240,18 +322,149 @@ properties in the future.
 
 By default, `calc` is set to `function() {return new Object();}`
 
-#### The `setControls` function
+#### The `addControls` and `updateControls` functions
 
-The parameters of `setControls` are:
+The parameters of `updateControls` are:
 
-1. `true` iff this function is being called for the first time this instance
+1. `true` iff the view has already been initialized
 2. The jQuery object representing representing this view
 3. The first parameter to the `calc` function, if one exists
 4. The second parameter to the `calc` function, if one exists
 5. The third parameter to the `calc` function, if one exists
 6. Etc.
 
-By default, `setControls` is set to `function(){}`
+`setControls` has the same parameters, except for the first one, which is
+omitted (since `setControls` is only called during initialization).  Both
+functions default to `function(){}`
+
+Features for Forms
+==================
+
+Fluid.js has some special features to eliminate boilerplate code when
+writing forms and transfering the data from those forms to models.
+
+## View `listeners`
+
+`listeners` is an optional property of `Fluid.compileView` which is used to
+add a listener to an element so that whenever that element's value changes
+that value is passed on along to a model.
+
+`listeners` should be an object, with keys corresponding to selectors for
+the relevant elements, and values corresponding to where to push the values
+to (e.g. models).  For instance, you might see the following:
+
+```js
+	listeners: {
+		"input.age": dadModels.age,
+		"input.firstName": dadModels.firstName,
+		"input.lastName": [dadModels.lastName, sonModels.lastName]
+	}
+```
+
+As you can see, one selector can set the value of multiple models if desired.
+What's more, values don't need to be pushed to models.  They can also be
+pushed to functions:
+
+```js
+	listeners: {
+		"input.name": function(name) {console.log(name);}
+	}
+```
+
+Also, `listeners` can be a function returning an object rather than an
+object directly.  In that case, the parameters to the function are the same
+as they are for the `calc` function.
+
+The default value for `listeners` is `{}`.  As a special case, the empty
+string `""` is interpreted as the selector for the root of the template.
+
+## `Fluid.defineInputType`
+
+Allows the programmer to define new types for `<input>` tags (or create
+fallback implementations for HTML5 types).  For instance, if you wanted
+to define a type for inputting integers:
+
+```js
+Fluid.defineInputType("integer", {
+	typeAttr: ["integer", "number"],
+	validator: /^-?\d*$/
+});
+```
+
+When Fluid.js was parsing a template, if it encounted an input tag with
+`type="integer"`, it would do the following:
+
+*	See if the input type `"integer"` is supported.  If not, try `"number"`.
+	If that isn't supported either, default to `"text"`.
+*	Add a listener to the element so that every time the value changes, it is
+	checked against the regex `/^-?\d*$/`.  If it does not match the regex,
+	the user's most recent change will be reverted.  So, for instance, if the 
+	user the characters `1`, `2`, `3`, `.`, `4` in order, Fluid.js will be
+	fine with the first three, but revert the `.`, and then allow the `4`,
+	making the final result `"1234"`.  However, if the user pastes the string
+	`"123.4"` from the clipboard directly into an empty input box, Fluid.js
+	will revert back to the empty input box, making the result `""`.
+
+In general, the syntax for the command is as follows:
+
+```js
+Fluid.defineInputType("type-name", {
+	typeAttr: /* Array of strings */,
+	validator: /* Function or regex */,
+	format: /* Function */,
+	unformat: /* Function */
+});
+```
+All properties are optional.
+
+`typeAttr` is a list of values to use for the tag's `type` property.  Values
+to the front of the list will be tried first.  If none of the values in the
+list are supported, `"text"` is used.  By default, this property is an array
+containing just the `type-name`.
+
+`validator` is used to check if an input is valid.  If it is a regex, then
+the input much match that regex.  If it is a function, then that input, when
+passed into the function, must cause the function to return a truthy value.
+By default, this propert is `function() {return true;}`
+
+`format` and `unformat` are used to format an input so that it will be
+displayed in a better format.  For instance, you might define a fallback
+implementation for telephone numbers as follows:
+
+```js
+Fluid.defineInputType("tel", {
+	validator: /^\d*$/,
+	format: function(val, type) {
+		//If browser supports "tel" type, it will handle the formatting
+		if(type == "tel")
+			return val;
+
+		//We will assume that it's a US phone number
+		if(val.length == 0)
+			return "";
+		else if(val.slice(0,1) == "1") {
+			return "1" +(val.length <= 1 ? "" : " ("+val.slice(1,3)+")"	+
+						(val.length <= 4 ? "" : " " +val.slice(4,3)		+
+						(val.length <= 7 ? "" : "-" +val.slice(7)		)));
+		} else if(val.length <= 3)
+			return val;
+		else if(val.length <= 7)
+			return val.slice(0,3)+" "+val.slice(3);
+		else
+			return "("+val.slice(0,3)+") "+val.slice(3,3)+"-"+val.slice(7);
+	},
+	unformat: function(val, type) {
+		return val.split().filter(function(x) {return !!parseInt(x);}
+																).join("");
+	}
+}
+```
+
+What will happen here is that when the user changes the input box, and `tel`
+is not supported by the browser, then Fluid.js will first run `unformat` over
+the user's input, then check that unformatted value against the `validator`,
+and then finally run `format` on the unformatted value and put the
+reformatted result back into the input box.
 
 TODO
 ====

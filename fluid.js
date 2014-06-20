@@ -1,36 +1,63 @@
-var Fluid = (function($) {
+var Fluid = (function($, fluid) {
 	"use strict";
-	var fluid = {};
 
-
-/**********************\
- *    Compatibility    *
-\**********************/
+/*****************\
+ *    Helpers    *
+\*****************/
 
 	//Credit to MDN
 	var isArray = Array.isArray || function(x) {
 		return Object.prototype.toString.call(x) === '[object Array]';
 	};
 
+	var jqFind = function($el, sel) {
+		return sel == "" ? $el : $el.filter(sel).add($el.find(sel));
+	}
+
 /**********************\
  *     Fluid.model     *
 \**********************/
 
 	//See README.md for spec
-	fluid.model = function(init) {
-		this.val = init;
-		this.listeners = [];
-	};
-	fluid.model.prototype.get = function() {return this.val;};
-	fluid.model.prototype.set = function(val) {
-		this.val = val;
-		this.alert();
-		return val;
-	};
-	fluid.model.prototype.listen = function(fun) {this.listeners.push(fun);};
-	fluid.model.prototype.alert = function() {
-		for(var i = 0; i < this.listeners.length; i++)
-			this.listeners[i]();
+	function model_get() {return this()};
+	function model_set(x) {return this(x)};
+	function addValSyntax(model) {
+		if(Object.defineProperty) try {
+			Object.defineProperty(model,"val",{get:model_get,set:model.set});
+		} catch(ex){}
+	}
+	function model_sub(prop) {
+		var sup = this;
+		var ret = function() {
+			if(arguments.length > 0) {
+				sup.alert();
+				return arguments[0];
+			} else
+				return sup()[prop];
+		}
+		$.extend(ret, sup);
+		addValSyntax(ret);
+		return ret;
+	}
+	fluid.newModel = function(val) {
+		listeners = [];
+		var ret = function() {
+			if(arguments.length > 0) {
+				val = arguments[0];
+				ret.alert();
+			}
+			return val;
+		}
+		ret.listen = listeners.push.bind(listeners);
+		ret.alert - function() {
+			for(var i = 0; i < listeners.length; i++)
+				listeners[i]();
+		}
+		ret.get = model_get;
+		ret.set = model_set;
+		ret.sub = model_sub;
+		addValSyntax(ret);
+		return ret;
 	};
 
 /**********************\
@@ -62,7 +89,8 @@ var Fluid = (function($) {
  *	typeHash - A random, unique string
  *
  *	calc() -	The function passed when the view class was declared
- *	setControls() - The function passed when the view class was declared  
+ *	addControls() - The function passed when the view class was declared  
+ *	updateControls() - The function passed when the view class was declared  
  *	noMemoize -	A flag saying that the render code for this view should
  *				always be rerun, even if the arguments to the view look from
  *				the outside like they are the same as last time.  Note that
@@ -71,9 +99,20 @@ var Fluid = (function($) {
  *
  *	getFreshJQ -	Generates a jQuery object based on the template ready to
  *					be updated based on the results of calc()
+ *	valCommands  -	map ("varname" -> ["idAttr"])
  *	attrCommands -	map ("varname" -> "idAttr" -> "attrToSet")
  *	textCommands -	map ("varname" -> ["idAttr"])
- *	viewCommands - map ("viewname" -> "id")
+ *	viewCommands -	map ("viewname" -> "id")
+ *
+ *	listeners -	The function or object passed at declaration
+ *	listenTrgts -	Map from selectors to places where the data needs to be
+ *					pushed.  Either the same as listeners or the result of
+ *					calling listeners
+ *	watch(sel) -	Watches an element for changes in its value, pushing the
+ *					new value to whatever listeners says
+ *	prevValues -	Values of elements the last time they were checked.  Used
+ *					so that a value will only be pushed if it is different
+ *					from the last value pushed.  Map from selectors to values
  *
  *	state -	The array which was last used as arguments for the calc()
  *			function.  Or, if the calc function hasn't been called yet, the
@@ -97,7 +136,7 @@ var Fluid = (function($) {
  *			in the last update() call, skip the remaining steps
  *		2.	Run calc()
  *		3.	Use the result of the calc function to update this.$el
- *		4.	Call setControls() with the correct params
+ *		4.	Call addControls() and updateControls() with the correct params
  */
 	function AbstractView() {}
 	AbstractView.prototype.update = function(view)
@@ -126,6 +165,19 @@ var Fluid = (function($) {
 			this.vals = {};
 		}
 
+		//Set values using calc()
+		for(var vname in this.valCommands) {
+			if(!newVals.hasOwnProperty(vname))
+				continue;
+			var val = newVals[vname];
+			var cmds = this.valCommands[vname];
+			for(var i = 0; i < cmds.length; i++) {
+				var $elem = jqFind(this.$el, "["+cmds[i]+"]");
+				if($elem.val() != val)
+					$elem.val(val);
+			}
+		}
+
 		//Set attributes using the result of calc()
 		for(var vname in this.attrCommands) {
 			if(!newVals.hasOwnProperty(vname))
@@ -133,8 +185,7 @@ var Fluid = (function($) {
 			var val = newVals[vname];
 			if(!inited || this.vals[vname] != val)
 				for(var idAttr in this.attrCommands[vname]) {
-					var $elem = this.$el.is("["+idAttr+"]") ? this.$el :
-								this.$el.find("["+idAttr+"]");
+					var $elem = jqFind(this.$el, "["+idAttr+"]"); 
 					$elem.attr(this.attrCommands[vname][idAttr], val);
 				}
 		}
@@ -147,8 +198,7 @@ var Fluid = (function($) {
 			if(!inited || this.vals[vname] != val) {
 				var idAttrs = this.textCommands[vname];
 				for(var i = 0; i < idAttrs.length; i++)
-					(	this.$el.is("["+idAttrs[i]+"]") ? this.$el :
-						this.$el.find("["+idAttrs[i]+"]")).text(val);
+					jqFind(this.$el, "["+idAttrs[i]+"]").text(val);
 			}
 		}
 
@@ -167,8 +217,7 @@ var Fluid = (function($) {
 				continue;
 			var view = newVals[vname];
 			var oldView = this.vals[vname];
-			var $elem = this.$el.attr("id") == this.viewCommands[vname] ?
-						this.$el:this.$el.find("#"+this.viewCommands[vname]);
+			var $elem = jqFind(this.$el, "#"+this.viewCommands[vname]);
 
 			if(isArray(view)) {
 				if(inited) {
@@ -271,22 +320,54 @@ var Fluid = (function($) {
 		}
 
 		this.vals = newVals;
-		this.setControls.apply(this, [!inited, this.$el].concat(this.state));
 
+		//Make sure all the listen stuff is up to date
+		this.listenTrgts =	this.listeners instanceof Function ?
+							this.listeners() : this.listeners;
+		for(var sel in this.listenTrgts)
+			this.watch(sel);
 
+		//Control code
+		if(!inited)
+			this.addControls.apply(this, [this.$el].concat(this.state));
+		this.updateControls.apply(this,[inited,this.$el].concat(this.state));
+
+		//Self monitoring!
 		var updateTime = new Date().getTime() - updateStart;
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
+	AbstractView.prototype.watch = function(sel)
+	{
+		if(!this.prevValues.hasOwnProperty(sel)) {
+			var $elem = jqFind(this.$el, sel);
+			var view = this;
+			view.prevValues[sel] = $elem.val();
+			function hear() {
+				var val = $elem.val();
+				if(val != view.prevValues[sel]) {
+					var trgt = view.listenTrgts || [];
+					if(!isArray(trgt))
+						trgt = [trgt];
+					for(var i = 0; i < trgt.length; i++)
+						trgt[i](val);
+				}
+			}
+			$elem.keypress(hear);
+			$elem.keydown(hear);
+			$elem.keyup(hear);
+			$elem.change(hear);
+		}
+	}
+	
 
 	//Generate a random string beginning with an "_".  Collisions should
 	//never happen
 	function rndStr() {
-		//We only use two digits of Math.random().toString(36) because
-		//Math.random() has at most 64-bits of entropy
-		return "_" +	Math.random().toString(36).substr(2,2) +
-						Math.random().toString(36).substr(2,2) +
-						Math.random().toString(36).substr(2,2) +
-						Math.random().toString(36).substr(2,2);
+		//We only use six digits of Math.random().toString(36) because
+		//Math.random() is based off of random 32-bit integers in some
+		//implementations (e.g. V8)
+		return "_" +	Math.random().toString(36).substr(2,6) +
+						Math.random().toString(36).substr(2,6);
 	}
 	//See README.md and the giant comment a little ways back
 	fluid.compileView = function(props) {
@@ -295,19 +376,29 @@ var Fluid = (function($) {
 		}
 		View.prototype = new AbstractView();
 		View.prototype.calc = props.calc || function(){return new Object();};
-		View.prototype.setControls = props.setControls || function(){};
+		View.prototype.addControls = props.addControls || function(){};
+		View.prototype.updateControls = props.updateControls || function(){};
+		View.prototype.listeners = props.listeners || {};
 		View.prototype.noMemoize = !!props.noMemoize;
 		View.prototype.typeHash = rndStr();
+		View.prototype.prevValues = {};
 		
 		//Modify Template
+		View.prototype.valCommands = {};
 		View.prototype.attrCommands = {};
 		View.prototype.textCommands = {};
 		View.prototype.viewCommands = {};
 		props.template = props.template || "";
 		
 		props.template =
+			//Value Commands
+			props.template.replace(/value={{\s*\w+\s*}}/g, function(match) {
+				var vname = match.substr(8, match.length-10).trim();
+				if(View.prototype.valCommands[vname] == null)
+					View.prototype.valCommands[vname] = [];
+				View.prototype.valCommands[vname].push(rndStr());
 			//Attribute Commands
-			props.template.replace(/[^\s]+={{\s*\w+\s*}}/g, function(match) {
+			}).replace(/[^\s]+={{\s*\w+\s*}}/g, function(match) {
 				var i = match.indexOf("=");
 				var aname = match.substr(0, i);
 				var vname = match.substr(i+3, match.length-i-5).trim();
@@ -368,4 +459,6 @@ var Fluid = (function($) {
 	}
 
 	return fluid;
-})(jQuery)
+})(	typeof jQuery != undefined ? jQuery : //jQuery library (yay!)
+	typeof require != undefined ? require("jquery") : //Node module (yay!)
+	$, typeof module == undefined ? new Object() : module.exports)
