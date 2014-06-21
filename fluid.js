@@ -1,5 +1,31 @@
-var Fluid = (function($, fluid) {
+//Header copied from jQuery
+(function(global, factory) {
+
+	if ((typeof module == "object") && (typeof module.exports == "object")) {
+		// For CommonJS and CommonJS-like environments where a proper window
+		// is present execute the factory and get Fluid
+		// For environments that do not inherently posses a window with a
+		// document (such as Node.js), expose a Fluid-making factory as
+		// module.exports
+		// This accentuates the need for the creation of a real window
+		// e.g. var Fluid = require("./fluid.js")(window);
+		module.exports =
+			global.jQuery ? factory(global.jQuery) :
+			global.document ? factory(require("jquery")) : (function() {
+				var jQueryFactory = require("jquery");
+				return function(window) {
+					return factory(window.jQuery || jQueryFactory(window));
+				};
+			})();
+	} else {
+		global.Fluid = factory(jQuery);
+	}
+
+// Pass this if window is not defined yet
+}(typeof window !== "undefined" ? window : this, function($) {
 	"use strict";
+
+	var fluid = {};
 
 /*****************\
  *    Helpers    *
@@ -30,6 +56,7 @@ var Fluid = (function($, fluid) {
 		var sup = this;
 		var ret = function() {
 			if(arguments.length > 0) {
+				sup()[prop] = arguments[0];
 				sup.alert();
 				return arguments[0];
 			} else
@@ -40,7 +67,7 @@ var Fluid = (function($, fluid) {
 		return ret;
 	}
 	fluid.newModel = function(val) {
-		listeners = [];
+		var listeners = [];
 		var ret = function() {
 			if(arguments.length > 0) {
 				val = arguments[0];
@@ -49,7 +76,7 @@ var Fluid = (function($, fluid) {
 			return val;
 		}
 		ret.listen = listeners.push.bind(listeners);
-		ret.alert - function() {
+		ret.alert = function() {
 			for(var i = 0; i < listeners.length; i++)
 				listeners[i]();
 		}
@@ -342,10 +369,10 @@ var Fluid = (function($, fluid) {
 			var $elem = jqFind(this.$el, sel);
 			var view = this;
 			view.prevValues[sel] = $elem.val();
-			function hear() {
+			var hear = function() {
 				var val = $elem.val();
 				if(val != view.prevValues[sel]) {
-					var trgt = view.listenTrgts || [];
+					var trgt = view.listenTrgts[sel] || [];
 					if(!isArray(trgt))
 						trgt = [trgt];
 					for(var i = 0; i < trgt.length; i++)
@@ -371,6 +398,7 @@ var Fluid = (function($, fluid) {
 	}
 	//See README.md and the giant comment a little ways back
 	fluid.compileView = function(props) {
+		props = props || {};
 		function View() {
 			this.state = Array.prototype.slice.call(arguments, 0);
 		}
@@ -459,6 +487,4 @@ var Fluid = (function($, fluid) {
 	}
 
 	return fluid;
-})(	typeof jQuery != undefined ? jQuery : //jQuery library (yay!)
-	typeof require != undefined ? require("jquery") : //Node module (yay!)
-	$, typeof module == undefined ? new Object() : module.exports)
+}));
