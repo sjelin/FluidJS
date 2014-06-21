@@ -162,13 +162,30 @@ describe("Views", function() {
 			view.update();
 			assert.equal(view.prevValues["input"], "val");
 		});
-		it("should note new value", function(done) {
+		it("should note new value", function() {
+			var called = false;
 			var view = new (Fluid.compileView({
 				template: '<input value=""></input>',
 				listeners: {"input": function(val) {
 					assert.equal(val, "val");
-					done();
+					called = true;
 			}}}))();
+			view.update();
+			view.$el.val("val");
+			view.$el.keypress();
+			assert.ok(called);
+			assert.equal(view.prevValues["input"], "val");
+		});
+		it("should allow multiple listeners to one value", function(done) {
+			var cnt = 0;
+			function lstn(val) {
+				assert.equal(val, "val");
+				if(++cnt == 2)
+					done();
+			}
+			var view = new (Fluid.compileView({
+				template: '<input value=""></input>',
+				listeners: {"input": [lstn, lstn]}}))();
 			view.update();
 			view.$el.val("val");
 			view.$el.keypress();

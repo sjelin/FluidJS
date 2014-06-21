@@ -6,26 +6,68 @@ var assert = require("assert");
 describe("View Coverage", function() {
 	describe("(momoization)", function() {
 		it("shouldn't memoize if it is slower than running", function() {
-			//TODO
+			var l = {x: Math.random()};
+			var bigObj = ((function(recFun) {
+					return recFun(recFun, 15);
+				})(function(me, n) {
+					return n ? {a: me(me,n-1), b: me(me,n-1)} : l;
+				}));
+			var cnt = 0;
+			var view = new (Fluid.compileView({calc: function(){cnt++;}}))();
+			view.state = [bigObj];
+			for(var i = 0; i < 10; i++) {
+				view.update();
+				l.x = Math.random();
+			}
+			for(var i = 0; i < 10; i++)
+				view.update();
+			assert.equal(cnt, 20);
 		});
 	});
-	describe("(selector)", function() {
+	describe("(listener)", function() {
 		it("should see \"\" as root elem", function() {
-			//TODO
+			var view = new (Fluid.compileView({
+				template: '<input value="val"></input>',
+				listeners: {"": $.noop}}))();
+			view.update();
+			assert.equal(view.prevValues[""], "val");
+		});
+		it("should allow listening with null", function() {
+			var view = new (Fluid.compileView({
+				template: '<input value="val"></input>',
+				listeners: {"": null}}))();
+			view.update();
+			assert.equal(view.prevValues[""], "val");
+			view.$el.val("newVal");
+			view.$el.keydown();
+			assert.equal(view.prevValues[""], "newVal");
 		});
 	})
 	describe("(simple edge cases)", function() {
-		it("should work with multiple value cmds", function() {
-			//TODO
+		it("should work with multiple value cmds per var", function() {
+			var view = new (Fluid.compileView({
+				template:	"<input value={{val}}></input>"+
+							"<input value={{val}}></input>",
+				calc: function() {return {val: "val"};}}))();
+			view.update();
+			assert.equal($(view.$el[0]).val(), "val");
+			assert.equal($(view.$el[1]).val(), "val");
 		});
-		it("should work with multiple attr cmds", function() {
-			//TODO
+		it("should work with multiple attr cmds per var", function() {
+			var view = new (Fluid.compileView({
+				template: "<a url={{href}} href={{href}}></a>",
+				calc: function() {return {href: "www"};}}))();
+			view.update();
+			assert.equal(view.$el.attr("href"), "www");
+			assert.equal(view.$el.attr("url"), "www");
 		});
-		it("should work with multiple text cmds", function() {
-			//TODO
-		});
-		it("should work with multiple view cmds", function() {
-			//TODO
+		it("should work with multiple text cmds per var", function() {
+			var view = new (Fluid.compileView({
+				template: "<a>{{text}}</a><b>{{text}}</b>",
+				calc: function() {return {text: "Hello, World!"};}}))();
+			view.update();
+			assert.equal($(view.$el[0]).text(), "Hello, World!");
+			assert.equal($(view.$el[1]).text(), "Hello, World!");
 		});
 		it("should leave old value if no new one set", function() {
 			//TODO

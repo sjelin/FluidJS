@@ -378,6 +378,7 @@
 			var hear = function() {
 				var val = $elem.val();
 				if(val != view.prevValues[sel]) {
+					view.prevValues[sel] = val;
 					var trgt = view.listenTrgts[sel] || [];
 					if(!isArray(trgt))
 						trgt = [trgt];
