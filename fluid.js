@@ -1,6 +1,7 @@
 //Header copied from jQuery
 (function(global, factory) {
 
+	/* istanbul ignore else */
 	if ((typeof module == "object") && (typeof module.exports == "object")) {
 		// For CommonJS and CommonJS-like environments where a proper window
 		// is present execute the factory and get Fluid
@@ -10,8 +11,10 @@
 		// This accentuates the need for the creation of a real window
 		// e.g. var Fluid = require("./fluid.js")(window);
 		module.exports =
-			global.jQuery ? factory(global.jQuery) :
-			global.document ? factory(require("jquery")) : (function() {
+			global.jQuery? /* istanbul ignore next */ factory(global.jQuery):
+			global.document ? /* istanbul ignore next */
+					factory(require("jquery")) :
+			(function() {
 				var jQueryFactory = require("jquery");
 				return function(window) {
 					return factory(window.jQuery || jQueryFactory(window));
@@ -22,7 +25,8 @@
 	}
 
 // Pass this if window is not defined yet
-}(typeof window !== "undefined" ? window : this, function($) {
+}(typeof window !== "undefined" ?
+		/* istanbul ignore next */ window : this, function($) {
 	"use strict";
 
 	var fluid = {};
@@ -32,7 +36,7 @@
 \*****************/
 
 	//Credit to MDN
-	var isArray = Array.isArray || function(x) {
+	var isArray = Array.isArray || /* istanbul ignore next */ function(x) {
 		return Object.prototype.toString.call(x) === '[object Array]';
 	};
 
@@ -48,6 +52,7 @@
 	function model_get() {return this()};
 	function model_set(x) {return this(x)};
 	function addValSyntax(model) {
+		/* istanbul ignore else */
 		if(Object.defineProperty) try {
 			Object.defineProperty(model,"val",{get:model_get,set:model.set});
 		} catch(ex){}
@@ -315,7 +320,7 @@
 						oldView = {};
 					} else if(oldView instanceof Object)
 						for(var k in oldView)
-							if(!(view[k] instanceof AbstractView) &&
+							if(!(view[k] instanceof AbstractView) ||
 									(view[k].typeHash!=oldView[k].typeHash)){
 								oldView[k].$el.remove();
 								oldView[k] = undefined;
@@ -350,7 +355,8 @@
 
 		//Make sure all the listen stuff is up to date
 		this.listenTrgts =	this.listeners instanceof Function ?
-							this.listeners() : this.listeners;
+								this.listeners.apply(this, this.state) :
+								this.listeners;
 		for(var sel in this.listenTrgts)
 			this.watch(sel);
 
@@ -422,9 +428,11 @@
 			//Value Commands
 			props.template.replace(/value={{\s*\w+\s*}}/g, function(match) {
 				var vname = match.substr(8, match.length-10).trim();
+				var idAttr = rndStr();
 				if(View.prototype.valCommands[vname] == null)
 					View.prototype.valCommands[vname] = [];
-				View.prototype.valCommands[vname].push(rndStr());
+				View.prototype.valCommands[vname].push(idAttr);
+				return idAttr;
 			//Attribute Commands
 			}).replace(/[^\s]+={{\s*\w+\s*}}/g, function(match) {
 				var i = match.indexOf("=");

@@ -31,15 +31,6 @@ describe("Views", function() {
 			Fluid.compileView({noMemoize: true});
 		}); 
 	});
-	describe("#attachView", function() {
-		it("shouldn't crash attaching an empty view", function() {
-			Fluid.attachView($("<a></a>"), Fluid.compileView());
-		});
-		it("shouldn't crash attaching a static view", function() {
-			Fluid.attachView($("<a></a>"), Fluid.compileView({
-				template: "<a></a>"}));
-		});
-	});
 	//----------------------------------------------------------
 	// The following tests use internal properties
 	//----------------------------------------------------------
@@ -49,6 +40,13 @@ describe("Views", function() {
 			view.update();
 			assert.equal(view.$el.prop("tagName").toUpperCase(), "A");
 			assert.equal(view.$el.html(), "");
+		});
+		it("should correctly set a value", function() {
+			var view = new (Fluid.compileView({
+				template: "<input value={{val}}></input>",
+				calc: function() {return {val: "val"};}}))();
+			view.update();
+			assert.equal(view.$el.val(), "val");
 		});
 		it("should correctly set a property", function() {
 			var view = new (Fluid.compileView({
@@ -102,7 +100,7 @@ describe("Views", function() {
 			view.update();
 			view.update();
 		});
-		it("should not memoize at incorrect times", function(done) {
+		it("should not memoize if data is new", function(done) {
 			var n = 0;
 			var View = Fluid.compileView({calc: function() {
 				if(++n == 2)
@@ -153,6 +151,17 @@ describe("Views", function() {
 			view.update();
 			assert.equal(view.prevValues["input"], "val");
 		});
+		it("should accept a function which takes in the state", function() {
+			var view = new (Fluid.compileView({
+				template: '<input value="val"></input>',
+				listeners: function(tag) {
+					var ret = {};
+					ret[tag] = $.noop;
+					return ret;
+				}}))("input");
+			view.update();
+			assert.equal(view.prevValues["input"], "val");
+		});
 		it("should note new value", function(done) {
 			var view = new (Fluid.compileView({
 				template: '<input value=""></input>',
@@ -164,8 +173,43 @@ describe("Views", function() {
 			view.$el.val("val");
 			view.$el.keypress();
 		});
+		it("should not alert anyone if the value has not changed",function(){
+			var view = new (Fluid.compileView({
+				template: '<input value="val"></input>',
+				listeners: {"input": function(val) {
+					assert.fail(1,0, "called listeners at wrong time","==");
+			}}}))();
+			view.update();
+			view.$el.val("val");
+			view.$el.keypress();
+		});
+		it("should not install listeners multiple times", function() {
+			var cnt = 0;
+			var view = new (Fluid.compileView({
+				template: '<input value=""></input>',
+				listeners: {"input": function(val) {
+					if(++cnt == 2)
+						assert.fail(2, 1, "called listeners twice","==");
+			}}}))();
+			view.update();
+			view.state = [1];
+			view.update();
+			view.$el.val("val");
+			view.$el.keypress();
+		});
 	});
 	describe("(complex subviews)", function() {
+		it("should update single subviews", function() {
+			var SubView = Fluid.compileView({template: "<s>{{text}}</s>",
+							calc: function(t) {return {text:t};}});
+			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
+					calc: function(t) {return {s: new SubView(t)};}}))("");
+			view.update();
+			assert.equal(view.$el.find("s").text(), "");
+			view.state = ["txt"];
+			view.update();
+			assert.equal(view.$el.find("s").text(), "txt");
+		});
 		it("should add new list elements to the view", function() {
 			var SubView = Fluid.compileView({template: "<s></s>"});
 			var n = -1;
@@ -206,33 +250,78 @@ describe("Views", function() {
 			view.update();
 			assert.equal(view.$el.find("s").length, n);
 		});
-		it("should replace a list with a single element", function() {
+		it("should add new subviews from an object", function() {
 			var SubView = Fluid.compileView({template: "<s></s>"});
-			var once = false;
+			var n = -1;
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-				calc: function() {
-					return {s: once ? new SubView() : [new SubView(),
-						new SubView(), new SubView(), new SubView()]}},
-				noMemoize: true}))();
+					calc: function() {
+						var s = {};
+						n++;
+						while(Object.keys(s).length < n)
+							s[97+Object.keys(s).length] = new SubView();
+						return {s:s};
+					}, noMemoize: true}))();
 			view.update();
-			assert.equal(view.$el.find("s").length, 4);
-			once = true;
+			assert.equal(view.$el.find("s").length, n);
 			view.update();
-			assert.equal(view.$el.find("s").length, 1);
+			assert.equal(view.$el.find("s").length, n);
+			view.update();
+			assert.equal(view.$el.find("s").length, n);
+			view.update();
+			assert.equal(view.$el.find("s").length, n);
 		});
-		it("should replace a single element with a list", function() {
+		it("should remove old subviews no longer in an object", function() {
 			var SubView = Fluid.compileView({template: "<s></s>"});
-			var once = false;
+			var n = 4;
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-				calc: function() {
-					return {s: !once ? new SubView() : [new SubView(),
-						new SubView(), new SubView(), new SubView()]}},
-				noMemoize: true}))();
+					calc: function() {
+						var s = {};
+						n--;
+						while(Object.keys(s).length < n)
+							s[97+Object.keys(s).length] = new SubView();
+						return {s:s};
+					}, noMemoize: true}))();
 			view.update();
-			assert.equal(view.$el.find("s").length, 1);
-			once = true;
+			assert.equal(view.$el.find("s").length, n);
 			view.update();
-			assert.equal(view.$el.find("s").length, 4);
+			assert.equal(view.$el.find("s").length, n);
+			view.update();
+			assert.equal(view.$el.find("s").length, n);
+			view.update();
+			assert.equal(view.$el.find("s").length, n);
+		});
+		it("should sort obj w/o function", function() {
+			function SubViewFact(t) {
+				return new (Fluid.compileView({template:
+											"<"+t+"></"+t+">"}))();
+			}
+			var subViews = {__SORT__: true};
+			subViews.e = SubViewFact("e");
+			subViews.a = SubViewFact("a");
+			subViews.z = SubViewFact("z");
+			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
+						calc: function() { return {s: subViews}; }}))();
+			view.update();
+			assert.equal(view.$el.children()[0].tagName.toUpperCase(), "A");
+			assert.equal(view.$el.children()[1].tagName.toUpperCase(), "E");
+			assert.equal(view.$el.children()[2].tagName.toUpperCase(), "Z");
+		});
+		it("should sort obj w/ function", function() {
+			function SubViewFact(t) {
+				return new (Fluid.compileView({template:
+											"<"+t+"></"+t+">"}))();
+			}
+			var subViews = {__SORT__: function(x,y) {
+				return y.charCodeAt(0) - x.charCodeAt(0);}};
+			subViews.e = SubViewFact("e");
+			subViews.a = SubViewFact("a");
+			subViews.z = SubViewFact("z");
+			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
+						calc: function() { return {s: subViews}; }}))();
+			view.update();
+			assert.equal(view.$el.children()[0].tagName.toUpperCase(), "Z");
+			assert.equal(view.$el.children()[1].tagName.toUpperCase(), "E");
+			assert.equal(view.$el.children()[2].tagName.toUpperCase(), "A");
 		});
 	});
 });
