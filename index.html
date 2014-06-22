@@ -53,7 +53,7 @@
 		</script>
 		<script type="text/JavaScript">
 			//Set models with initial data
-			var items = new Fluid.model([{
+			var items = Fluid.newModel([{
 				index: 0, name: "Steve J.", color: "FFFFFF", bg: "1E1E1E"
 			}, {
 				index: 1, name: "Bill G.", color: "FFFFFF", bg: "56C5FF"
@@ -66,7 +66,7 @@
 			}, {
 				index: 5, name: "Amy Q.", color: "FFFFFF", bg: "FF6699"
 			}]);
-			var lastDragged = new Fluid.model();
+			var lastDragged = Fluid.newModel();
 
 			//Declare main view
 			var MainView = Fluid.compileView({
