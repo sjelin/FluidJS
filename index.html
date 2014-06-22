@@ -96,7 +96,7 @@
 
 				addControls: function($el) {
 					//Add event to "new" button
-					if(init) $el.find(".new").click(function() {
+					$el.find(".new").click(function() {
 						var itms = items.get();
 						var cnt = 0;
 						for(var i = 0; i < itms.length; i++)
@@ -128,31 +128,29 @@
 
 				addControls: function($el) {
 					//Add events to the delete button & when text is changed
-					if(init) {
-						$el.find(".delete").click(function() {
-							var i = parseInt(
-										$(this).parent().attr("modelIndex"));
-							var itms = items.get();
-							itms[i].hide = true;
-							var j = itms[i].index;
-							for(var k = 0; k < itms.length; k++)
-								if(itms[k].index > j)
-									itms[k].index--;
-							items.alert();
-						});
-						function key() {
-							var $this = $(this).parent().parent();
-							var item = items.get()[
-										parseInt($this.attr("modelIndex"))];
-							item.name = $this.find(".name input").val();
-							item.color = $this.find(".color input").val();
-							item.bg = $this.find(".bg input").val();
-							items.alert();
-						};
-						$el.find("input").keydown(key);
-						$el.find("input").keyup(key);
-						$el.find("input").keypress(key);
-					}
+					$el.find(".delete").click(function() {
+						var i = parseInt(
+									$(this).parent().attr("modelIndex"));
+						var itms = items.get();
+						itms[i].hide = true;
+						var j = itms[i].index;
+						for(var k = 0; k < itms.length; k++)
+							if(itms[k].index > j)
+								itms[k].index--;
+						items.alert();
+					});
+					function key() {
+						var $this = $(this).parent().parent();
+						var item = items.get()[
+									parseInt($this.attr("modelIndex"))];
+						item.name = $this.find(".name input").val();
+						item.color = $this.find(".color input").val();
+						item.bg = $this.find(".bg input").val();
+						items.alert();
+					};
+					$el.find("input").keydown(key);
+					$el.find("input").keyup(key);
+					$el.find("input").keypress(key);
 				}
 			});
 
@@ -177,7 +175,7 @@
 
 				addControls: function($el) {
 					//Set up event to dragging views around
-					if(init) $el.mousedown(function(mEvent) {
+					$el.mousedown(function(mEvent) {
 						var itms = items.get();
 						var i = parseInt($(this).attr("modelIndex"));
 						lastDragged.set(i);
