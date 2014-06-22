@@ -44,9 +44,9 @@
 		return sel == "" ? $el : $el.filter(sel).add($el.find(sel));
 	}
 
-/**********************\
+/***********************\
  *     Fluid.model     *
-\**********************/
+\***********************/
 
 	//See README.md for spec
 	function model_get() {return this()};
@@ -92,9 +92,9 @@
 		return ret;
 	};
 
-/**********************\
+/***********************\
  *  Fluid.compileView  *
-\**********************/
+\***********************/
 
 /****************************************************************************
  *	HOW VIEWS WORK
@@ -468,9 +468,43 @@
 		return View;
 	};
 
-/*********************\
+/**********************\
+ *  Fluid.defineType  *
+\**********************/
+	//NOTE: the real work is done in the view code
+
+	var customTypes = {}
+
+	fluid.defineType = function(typeName, props) {
+		props = props || {};
+		var typeAttr = undefined;
+		var typeAttrs = props.typeAttr || typeName;
+		if(!isArray(typeAttrs))
+			typeAttrs = [typeAttrs];
+		var $i = $("<input>");
+		for(var i = 0; !typeAttr && (i < typeAttrs.length); i++)
+			/* instanbul ignore else */
+			if($i.attr("type", typeAttrs[i]).prop("type") == typeAttrs[i])
+				typeAttr = typeAttrs[i];
+		/* istanbul ignore if */
+		if(!typeAttr)
+			typeAttr = "text";
+		return customTypes.typeName = { //Return for testing reasons
+			typeAttr: typeAttr,
+			validator:	props.validator instanceof RegExp ?
+							props.validator.test.bind(props.validator) :
+						props.validator instanceof Function ?props.validator:
+						function() {return true;},
+			format:		props.format instanceof Function ? props.format :
+						function(x) {return x;},
+			unformat:	props.unformat instanceof Function ? props.unformat :
+						function(x) {return x;}
+		};
+	};
+
+/**********************\
  *  Fluid.attachView  *
-\*********************/
+\**********************/
 
 	fluid.attachView = function($elem, ViewClass) {
 		var models = Array.prototype.slice.call(arguments, 2);
