@@ -387,7 +387,7 @@ to define a type for inputting integers:
 ```js
 Fluid.defineInputType("integer", {
 	typeAttr: ["integer", "number"],
-	validator: /^-?\d*$/
+	validate: /^-?\d*$/
 });
 ```
 
@@ -410,7 +410,7 @@ In general, the syntax for the command is as follows:
 ```js
 Fluid.defineInputType("type-name", {
 	typeAttr: /* Array of strings */,
-	validator: /* Function or regex */,
+	validate: /* Function or regex */,
 	format: /* Function */,
 	unformat: /* Function */
 });
@@ -422,7 +422,7 @@ to the front of the list will be tried first.  If none of the values in the
 list are supported, `"text"` is used.  By default, this property is an array
 containing just the `type-name`.
 
-`validator` is used to check if an input is valid.  If it is a regex, then
+`validate` is used to check if an input is valid.  If it is a regex, then
 the input much match that regex.  If it is a function, then that input, when
 passed into the function, must cause the function to return a truthy value.
 By default, this propert is `function() {return true;}`
@@ -433,7 +433,7 @@ implementation for telephone numbers as follows:
 
 ```js
 Fluid.defineInputType("tel", {
-	validator: /^\d*$/,
+	validate: /^\d*$/,
 	format: function(val, type) {
 		//If browser supports "tel" type, it will handle the formatting
 		if(type == "tel")
@@ -462,7 +462,7 @@ Fluid.defineInputType("tel", {
 
 What will happen here is that when the user changes the input box, and `tel`
 is not supported by the browser, then Fluid.js will first run `unformat` over
-the user's input, then check that unformatted value against the `validator`,
+the user's input, then check that unformatted value against the `validate`,
 and then finally run `format` on the unformatted value and put the
 reformatted result back into the input box.
 

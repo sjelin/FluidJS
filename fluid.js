@@ -92,6 +92,58 @@
 		return ret;
 	};
 
+/**********************\
+ *  Fluid.defineType  *
+\**********************/
+	//NOTE: the real work is done in the view code
+
+	var customTypes = {}
+	var ctHashAttr = "__FLUID__CUSTOM_TYPE_HASH";
+
+	fluid.defineType = function(typeName, props) {
+		props = props || {};
+		var typeAttr = undefined;
+		var typeAttrs = props.typeAttr || typeName;
+		if(!isArray(typeAttrs))
+			typeAttrs = [typeAttrs];
+		var $i = $("<input>");
+		for(var i = 0; !typeAttr && (i < typeAttrs.length); i++)
+			/* instanbul ignore else */
+			if($i.attr("type", typeAttrs[i]).prop("type") == typeAttrs[i])
+				typeAttr = typeAttrs[i];
+		/* istanbul ignore if */
+		if(!typeAttr)
+			typeAttr = "text";
+		return customTypes.typeName = { //Return for testing reasons
+			attr: typeAttr,
+			validate:	props.validate instanceof RegExp ?
+							props.validate.test.bind(props.validate) :
+						props.validate instanceof Function ?props.validate:
+						function() {return true;},
+			format:		props.format instanceof Function ? props.format :
+						function(x) {return x;},
+			unformat:	props.unformat instanceof Function ? props.unformat :
+						function(x) {return x;}
+		};
+	};
+
+	function ctListener(view, hash, $elem) {
+		var val = $elem.val();
+		var prev = view.prevVals[hash];
+		if(val != prev) {
+			val = type.unformat(val);
+			if(!type.validate(val))
+				$elem.val(prev);
+			else {
+				var listeners = view.ctListeners[hash];
+				for(var i = 0; i < listeners.length; i++)
+					listeners[i](val);
+				$elem.val(type.format(val));
+				view.prevVals[hash] = $elem.val();
+			}
+		}
+	};
+
 /***********************\
  *  Fluid.compileView  *
 \***********************/
@@ -136,15 +188,17 @@
  *	textCommands -	map ("varname" -> ["idAttr"])
  *	viewCommands -	map ("viewname" -> "id")
  *
+ *	ctMap	- A map from hashes to custom type objects
+ *	ctListeners	- A map from hashes to functions listening to the element
+ *
  *	listeners -	The function or object passed at declaration
  *	listenTrgts -	Map from selectors to places where the data needs to be
  *					pushed.  Either the same as listeners or the result of
  *					calling listeners
- *	watch(sel) -	Watches an element for changes in its value, pushing the
- *					new value to whatever listeners says
  *	prevValues -	Values of elements the last time they were checked.  Used
  *					so that a value will only be pushed if it is different
- *					from the last value pushed.  Map from selectors to values
+ *					from the last value pushed.
+ *					Map from selectors or custom type hashes to values
  *
  *	state -	The array which was last used as arguments for the calc()
  *			function.  Or, if the calc function hasn't been called yet, the
@@ -193,6 +247,13 @@
 
 		var inited = this.vals != null;
 		if(!inited) {
+			this.prevValues = {};
+			this.ctListeners = {};
+			for(var hash in this.ctMap) {
+				this.prevVals[hash] =
+					$view.find("["+ctHashAttr+"'="+hash+"']").val();
+				this.ctListeners[hash] = [];
+			}
 			this.$el = this.getFreshJQ();
 			this.vals = {};
 		}
@@ -361,7 +422,7 @@
 								this.listeners.apply(this, this.state) :
 								this.listeners;
 		for(var sel in this.listenTrgts)
-			this.watch(sel);
+			watch(this, sel);
 
 		//Control code
 		if(!inited)
@@ -372,27 +433,33 @@
 		var updateTime = new Date().getTime() - updateStart;
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
-	AbstractView.prototype.watch = function(sel)
+	function watch(view, sel)
 	{
-		if(!this.prevValues.hasOwnProperty(sel)) {
-			var $elem = jqFind(this.$el, sel);
-			var view = this;
-			view.prevValues[sel] = $elem.val();
-			var hear = function() {
-				var val = $elem.val();
-				if(val != view.prevValues[sel]) {
-					view.prevValues[sel] = val;
-					var trgt = view.listenTrgts[sel] || [];
-					if(!isArray(trgt))
-						trgt = [trgt];
-					for(var i = 0; i < trgt.length; i++)
-						trgt[i](val);
+		function send(val) {
+			var trgt = view.listenTrgts[sel] || [];
+			if(!isArray(trgt))
+				trgt = [trgt];
+			for(var i = 0; i < trgt.length; i++)
+				trgt[i](val);
+		}
+		if(!view.prevValues.hasOwnProperty(sel)) {
+			var $elem = jqFind(view.$el, sel);
+			if($elem.is("["+ctHashAttr+"]")) {
+				view.prevValues[sel] = undefined;	//We just want to stop
+													//more listeners
+				view.ctListeners.push(send);
+			} else {
+				view.prevValues[sel] = $elem.val();
+				var hear = function() {
+					var val = $elem.val();
+					if(val != view.prevValues[sel])
+						send(view.prevValues[sel] = val);
 				}
+				$elem.keypress(hear);
+				$elem.keydown(hear);
+				$elem.keyup(hear);
+				$elem.change(hear);
 			}
-			$elem.keypress(hear);
-			$elem.keydown(hear);
-			$elem.keyup(hear);
-			$elem.change(hear);
 		}
 	}
 	
@@ -419,13 +486,13 @@
 		View.prototype.listeners = props.listeners || {};
 		View.prototype.noMemoize = !!props.noMemoize;
 		View.prototype.typeHash = rndStr();
-		View.prototype.prevValues = {};
 		
 		//Modify Template
 		View.prototype.valCommands = {};
 		View.prototype.attrCommands = {};
 		View.prototype.textCommands = {};
 		View.prototype.viewCommands = {};
+		View.prototype.ctMap = {};
 		props.template = props.template || "";
 		
 		props.template =
@@ -462,44 +529,32 @@
 				var id = rndStr();
 				View.prototype.viewCommands[vname] = id;
 				return "<span id='"+id+"' style='display: none'></span>";
+			//Type Commands
+			}).replace(/type=["']\s*\w+\s*["']/g, function(match) {
+				var typeStr = match.substr(6, match.length-1).trim();
+				if(customTypes[typeStr]) {
+					var type = customTypes[typeStr];
+					var hash = rndStr();
+					View.prototype.ctMap[hash] = type;
+					var q = match.slice(-1);
+					return ctHashAttr+"="+q+hash+q+" type="+q+type.attr+q;
+				} else
+					return match;
 			});
-		View.prototype.getFreshJQ = function() {return $(props.template);};
+		View.prototype.getFreshJQ = function() {
+			var $view = $(props.template);
+			for(hash in View.prototype.ctMap) {
+				var $elem = $view.find("["+ctHashAttr+"'="+hash+"']");
+				var listener = ctListener.bind(null, view, hash, $elem);
+				$elem.keypress(listener);
+				$elem.keydown(listener);
+				$elem.keyup(listener);
+				$elem.change(listener);
+			}
+			return $view;
+		};
 
 		return View;
-	};
-
-/**********************\
- *  Fluid.defineType  *
-\**********************/
-	//NOTE: the real work is done in the view code
-
-	var customTypes = {}
-
-	fluid.defineType = function(typeName, props) {
-		props = props || {};
-		var typeAttr = undefined;
-		var typeAttrs = props.typeAttr || typeName;
-		if(!isArray(typeAttrs))
-			typeAttrs = [typeAttrs];
-		var $i = $("<input>");
-		for(var i = 0; !typeAttr && (i < typeAttrs.length); i++)
-			/* instanbul ignore else */
-			if($i.attr("type", typeAttrs[i]).prop("type") == typeAttrs[i])
-				typeAttr = typeAttrs[i];
-		/* istanbul ignore if */
-		if(!typeAttr)
-			typeAttr = "text";
-		return customTypes.typeName = { //Return for testing reasons
-			typeAttr: typeAttr,
-			validator:	props.validator instanceof RegExp ?
-							props.validator.test.bind(props.validator) :
-						props.validator instanceof Function ?props.validator:
-						function() {return true;},
-			format:		props.format instanceof Function ? props.format :
-						function(x) {return x;},
-			unformat:	props.unformat instanceof Function ? props.unformat :
-						function(x) {return x;}
-		};
 	};
 
 /**********************\
