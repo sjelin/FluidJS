@@ -259,7 +259,7 @@
 						var numToKeep = Math.min(view.length,oldView.length);
 						for(var i = 0; i < numToKeep; i++)
 							if(oldView[i].typeHash != view[i].typeHash)
-								numToKeep = i+1;
+								numToKeep = i;
 						while(oldView.length > numToKeep) {
 							oldView[oldView.length-1].$el.remove();
 							oldView.length--;
@@ -316,15 +316,18 @@
 							oldView[i].$el.remove();
 						oldView = {};
 					} else if(oldView instanceof AbstractView) {
-						oldView[i].$el.remove();
+						oldView.$el.remove();
 						oldView = {};
-					} else if(oldView instanceof Object)
+					} else if(oldView instanceof Object) {
 						for(var k in oldView)
-							if(!(view[k] instanceof AbstractView) ||
+							if(!(oldView[k] instanceof AbstractView))
+								oldView[k] = undefined;
+							else if(!(view[k] instanceof AbstractView) ||
 									(view[k].typeHash!=oldView[k].typeHash)){
 								oldView[k].$el.remove();
 								oldView[k] = undefined;
 							}
+					}
 				} else
 					oldView = {};
 				var keys = [];
