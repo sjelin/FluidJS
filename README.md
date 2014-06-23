@@ -410,9 +410,9 @@ In general, the syntax for the command is as follows:
 ```js
 Fluid.defineInputType("type-name", {
 	typeAttr: /* Array of strings */,
-	validate: /* Function or RegExp */,
-	format: /* Function */,
-	valChars: /* Function or RegExp */
+	validate: /* Function or RegExp or Object of the two */,
+	format: /* Function or Object of Functions */,
+	valChars: /* Function or RegExp or Object or the two */
 });
 ```
 All properties are optional.
@@ -420,7 +420,10 @@ All properties are optional.
 `typeAttr` is a list of values to use for the tag's `type` property.  Values
 to the front of the list will be tried first.  If none of the values in the
 list are supported, `"text"` is used.  By default, this property is an array
-containing just the `type-name`.
+containing just the `type-name`.  if `validate`, `format` and/or `valChars`
+object, then that object will be used to select a validator/formater/value
+character set based on which type attribute is actually used.
+
 
 `validate` is used to check if an input is valid.  If it is a regex, then
 the input much match that regex.  If it is a function, then that input, when

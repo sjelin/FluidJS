@@ -35,18 +35,77 @@ describe("Custome Types", function() {
 			assert.ok(type.validate("hello"));
 			assert.ok(!type.validate("world"));
 		});
+		it("should correctly pick a validator from an object", function() {
+			var type = Fluid.defineType("x", {validate: {x: $}});
+			assert.strictEqual(type.validate, $);
+		});
 		it("should correctly install a formatter", function() {
 			var type = Fluid.defineType("", {format: $});
 			assert.strictEqual(type.format, $);
 		});
-		it("should correctly install an valChars RegEx", function() {
+		it("should correctly pick a formatter from an object", function() {
+			var type = Fluid.defineType("x", {format: {x: $}});
+			assert.strictEqual(type.format, $);
+		});
+		it("should correctly install an valChars function", function() {
 			var type = Fluid.defineType("", {valChars: $});
 			assert.strictEqual(type.valChars, $);
 		});
-		it("should correctly install an valChars function", function() {
+		it("should correctly install an valChars RegEx", function() {
 			var type = Fluid.defineType("", {valChars: /h/});
 			assert.ok(type.valChars("h"));
 			assert.ok(!type.valChars("w"));
+		});
+		it("should correctly pick a value character set from obj",function(){
+			var type = Fluid.defineType("x", {valChars: {x: $}});
+			assert.strictEqual(type.valChars, $);
+		});
+		it("should correctly create unformat function", function() {
+			var type = Fluid.defineType("", {valChars: /h/});
+			assert.equal(type.unformat("hello"), "h");
+			assert.equal(type.unformat("world"), "");
+		});
+	});
+	describe("(blurred)", function() {
+		beforeEach(function() {
+			Fluid.defineType("r", {typeAttr: "radio"});
+			Fluid.defineType("num", {validate: /^[0-9]*$/});
+			Fluid.defineType("num2", {valChars: /^[0-9]*$/});
+			Fluid.defineType("ccn", {format: function(x) {
+				for(var i = 4; i < x.length; i += 5)
+					x = x.slice(0,i)+"-"+x.slice(x);
+				return x;
+			}, valChars: /[0-9]/});
+		});
+		it("should actually use the type set in typeAttr", function() {
+		});
+		it("should allow valid values", function() {
+		});
+		it("should reject invalid values", function() {
+		});
+		it("should format initial values", function() {
+		});
+		it("should unformat unformat values", function() {
+		});
+		it("should format new values", function() {
+		});
+		it("should unformat new values", function() {
+		});
+		it("should push values to listeners", function() {
+		});
+		it("shouldn't push invalid values to listeners", function() {
+		});
+		it("should push unformated values to listeners", function() {
+		});
+	});
+	describe("(focused)", function() {
+		it("should move cursor to end if new value from model", function() {
+		});
+		it("should revert selection if invalid value", function() {
+		});
+		it("should translate selection to new format", function() {
+		});
+		it("shouldn't crash if selection not possible", function() {
 		});
 	});
 });

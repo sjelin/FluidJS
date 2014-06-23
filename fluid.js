@@ -114,6 +114,16 @@
 		/* istanbul ignore if */
 		if(!typeAttr)
 			typeAttr = "text";
+
+		for(var i = 0; i < 3; i++) {
+			var k = ["validate", "format", "valChars"][i];
+			if((typeof props[k] == "object")&&!(props[k] instanceof RegExp))
+				props[k] = props[k][typeAttr]
+		}
+		var valChars =	props.valChars instanceof RegExp ?
+							props.valChars.test.bind(props.valChars) :
+						props.valChars instanceof Function ? props.valChars:
+						function() {return true;};
 		return customTypes.typeName = { //Return for testing reasons
 			attr: typeAttr,
 			validate:	props.validate instanceof RegExp ?
@@ -122,10 +132,9 @@
 						function() {return true;},
 			format:		props.format instanceof Function ? props.format :
 						function(x) {return x;},
-			valChars:	props.valChars instanceof RegExp ?
-							props.valChars.test.bind(props.valChars) :
-						props.valChars instanceof Function ? props.valChars:
-						function() {return true;},
+			valChars:	valChars,
+			unformat:	function(x)
+							{return x.split("").filter(valChars).join("");}
 		};
 	};
 
@@ -134,10 +143,9 @@
 		if(arguments.length == 2)
 			end = start;
 		start = Math.min(start, end = Math.min(end, $elem.val().length));
-		/* istanbul ignore else */
 		if(elem.setSelectionRange)
 			elem.setSelectionRange(start, end);
-		else {
+		else /* istanbul ignore if */ if(elem.createTextRange) {
 			//IE<=8
 			var rng = elem.createTextRange();
 			rng.collapse(true);
@@ -149,17 +157,17 @@
 
 	function getTextSel($elem) {
 		var elem = $elem[0];
-		/* istanbul ignore else */
 		if(elem.setSelectionRange)
 			return {s: elem.selectionStart, e: elem.selectionEnd};
-		else {
+		else /* istanbul ignore if */ if(document.selection) {
 			//IE<=8
 			var sel = document.selection.createRange();
 			var selLen = sel.text.length;
 			sel.moveStart('character', -elem.value.length);
 			var end = sel.text.length;
 			return {s: end-selLen, e: end};
-		}
+		} else
+			return {s: 0, e: 0}//Not an input with a selection range
 	}
 
 	function ctLogCursor(view, hash, $elem) {
@@ -176,6 +184,8 @@
 		for(i = 0; (i < dest.length) && (valCharsToPass > 0); i++)
 			if(valChars(dest[i]))
 				valCharsToPass--;
+		while((i < dest.length) && !valChars(dest[i]))
+			i++;
 		return i;
 	}
 
@@ -264,10 +274,11 @@
  *	listenTrgts -	Map from selectors to places where the data needs to be
  *					pushed.  Either the same as listeners or the result of
  *					calling listeners
- *	prevValues -	Values of elements the last time they were checked.  Used
+ *	prevValues -	Values of elements the last time they were checked.
+ *					Formatted, rather than stripped, values are used.  Used
  *					so that a value will only be pushed if it is different
  *					from the last value pushed.
- *					Map from selectors or custom type hashes to values
+ *					Map from selectors or custom type hashes to values.
  *
  *	state -	The array which was last used as arguments for the calc()
  *			function.  Or, if the calc function hasn't been called yet, the
@@ -314,6 +325,7 @@
 
 		var newVals = this.calc.apply(this, this.state);
 
+		//Init
 		var inited = this.vals != null;
 		if(!inited) {
 			this.$el = this.getFreshJQ();
@@ -322,8 +334,9 @@
 			this.ctListeners = {};
 			this.ctCursorPos = {};
 			for(var hash in this.ctMap) {
-				this.prevVals[hash] =
-					view.$el.find("["+ctHashAttr+"'="+hash+"']").val();
+				var $elem = view.$el.find("["+ctHashAttr+"'="+hash+"']");
+				$elem.val(this.prevVals[hash] =
+											this.ctMap.format($elem.val()));
 				this.ctListeners[hash] = [];
 			}
 		}
@@ -619,18 +632,19 @@
 			});
 		View.prototype.getFreshJQ = function() {
 			var $view = $(props.template);
-			for(hash in View.prototype.ctMap) {
-				var $elem = $view.find("["+ctHashAttr+"'="+hash+"']");
-				var keyListener = ctKeyListener.bind(null,this,hash,$elem);
-				var clickListener = ctLogCursor.bind(null,this,hash,$elem);
-				$elem.keypress(keyListener);
-				$elem.keydown(keyListener);
-				$elem.keyup(keyListener);
-				$elem.change(keyListener);
-				$elem.click(clickListener);
-				$elem.mouseup(clickListener);
-				$elem.mousedown(clickListener);
-				$elem.focus(clickListener);
+			for(hash in this.ctMap) {
+				var $el = $view.find("["+ctHashAttr+"'="+hash+"']");
+				$el.val(this.ctMap.format(this.ctMap.unformat($el.val())));
+				var keyListener = ctKeyListener.bind(null,this,hash,$el);
+				var clickListener = ctLogCursor.bind(null,this,hash,$el);
+				$el.keypress(keyListener);
+				$el.keydown(keyListener);
+				$el.keyup(keyListener);
+				$el.change(keyListener);
+				$el.click(clickListener);
+				$el.mouseup(clickListener);
+				$el.mousedown(clickListener);
+				$el.focus(clickListener);
 			}
 			return $view;
 		};
