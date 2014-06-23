@@ -140,34 +140,42 @@
 
 	function setCursorPos($elem, start, end)
 	{
-		if(arguments.length == 2)
-			end = start;
-		start = Math.min(start, end = Math.min(end, $elem.val().length));
-		if(elem.setSelectionRange)
-			elem.setSelectionRange(start, end);
-		else /* istanbul ignore if */ if(elem.createTextRange) {
-			//IE<=8
-			var rng = elem.createTextRange();
-			rng.collapse(true);
-			rng.moveStart('character', start);
-			rng.moveEnd('character', end);
-			rng.select()
-		}
+		if(		($elem[0] instanceof HTMLInputElement) ||
+				($elem[0] instanceof HTMLTextAreaElement)) try {
+			if(arguments.length == 2)
+				end = start;
+			start = Math.min(start, end = Math.min(end, $elem.val().length));
+			/* istanbul ignore else */
+			if(elem.setSelectionRange)
+				elem.setSelectionRange(start, end);
+			else {
+				//IE<=8
+				var rng = elem.createTextRange();
+				rng.collapse(true);
+				rng.moveStart('character', start);
+				rng.moveEnd('character', end);
+				rng.select()
+			}
+		} catch(ex) {}
 	}
 
 	function getTextSel($elem) {
 		var elem = $elem[0];
-		if(elem.setSelectionRange)
-			return {s: elem.selectionStart, e: elem.selectionEnd};
-		else /* istanbul ignore if */ if(document.selection) {
-			//IE<=8
-			var sel = document.selection.createRange();
-			var selLen = sel.text.length;
-			sel.moveStart('character', -elem.value.length);
-			var end = sel.text.length;
-			return {s: end-selLen, e: end};
-		} else
-			return {s: 0, e: 0}//Not an input with a selection range
+		if(		(elem instanceof HTMLInputElement) ||
+				(elem instanceof HTMLTextAreaElement)) try {
+			/* istanbul ignore else */
+			if(elem.setSelectionRange)
+				return {s: elem.selectionStart, e: elem.selectionEnd};
+			else {
+				//IE<=8
+				var sel = document.selection.createRange();
+				var selLen = sel.text.length;
+				sel.moveStart('character', -elem.value.length);
+				var end = sel.text.length;
+				return {s: end-selLen, e: end};
+			}
+		} catch(ex) {}
+		return {s: 0, e: 0};
 	}
 
 	function ctLogCursor(view, hash, $elem) {

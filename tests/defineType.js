@@ -105,7 +105,9 @@ describe("Custome Types", function() {
 		});
 		it("should translate selection to new format", function() {
 		});
-		it("shouldn't crash if selection not possible", function() {
+		it("shouldn't crash if tag doesn't support selection", function() {
+		});
+		it("shouldn't crash if type doesn't support selection", function() {
 		});
 	});
 });
