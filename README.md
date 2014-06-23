@@ -410,9 +410,9 @@ In general, the syntax for the command is as follows:
 ```js
 Fluid.defineInputType("type-name", {
 	typeAttr: /* Array of strings */,
-	validate: /* Function or regex */,
+	validate: /* Function or RegExp */,
 	format: /* Function */,
-	unformat: /* Function */
+	valChars: /* Function or RegExp */
 });
 ```
 All properties are optional.
@@ -427,9 +427,10 @@ the input much match that regex.  If it is a function, then that input, when
 passed into the function, must cause the function to return a truthy value.
 By default, this propert is `function() {return true;}`
 
-`format` and `unformat` are used to format an input so that it will be
-displayed in a better format.  For instance, you might define a fallback
-implementation for telephone numbers as follows:
+`format` is used to format an input so that it will be displayed in a better
+format.  `valChars` is used to determine which characters are actually part
+of the element's value vs just used for formatting.  For instance, you might
+define a fallback implementation for telephone numbers as follows:
 
 ```js
 Fluid.defineInputType("tel", {
@@ -453,17 +454,14 @@ Fluid.defineInputType("tel", {
 		else
 			return "("+val.slice(0,3)+") "+val.slice(3,3)+"-"+val.slice(7);
 	},
-	unformat: function(val, type) {
-		return val.split().filter(function(x) {return !!parseInt(x);}
-																).join("");
-	}
-}
+	valChars: /[0-9]/
+});
 ```
 
 What will happen here is that when the user changes the input box, and `tel`
-is not supported by the browser, then Fluid.js will first run `unformat` over
-the user's input, then check that unformatted value against the `validate`,
-and then finally run `format` on the unformatted value and put the
+is not supported by the browser, then Fluid.js will first strip out any
+characters not matched by `valChars`, then check this stripped value against
+`validate`, and then finally run `format` on the stripped value and put the
 reformatted result back into the input box.
 
 TODO

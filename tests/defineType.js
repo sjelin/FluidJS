@@ -14,10 +14,9 @@ describe("Custome Types", function() {
 				var x = Math.random().toString(36).slice(2);
 				assert.equal(type.format(x), x);
 			}
-			for(var i = 0; i < 10; i++) {
-				var x = Math.random().toString(36).slice(2);
-				assert.equal(type.unformat(x), x);
-			}
+			for(var i = 0; i < 10; i++)
+				assert.ok(type.valChars(
+									Math.random().toString(36).slice(2,1)));
 		});
 		it("should use a typeAttr from the list",function(){
 			var type = Fluid.defineType("", {typeAttr: ["radio"]});
@@ -40,9 +39,14 @@ describe("Custome Types", function() {
 			var type = Fluid.defineType("", {format: $});
 			assert.strictEqual(type.format, $);
 		});
-		it("should correctly install an unformatter", function() {
-			var type = Fluid.defineType("", {unformat: $});
-			assert.strictEqual(type.unformat, $);
+		it("should correctly install an valChars RegEx", function() {
+			var type = Fluid.defineType("", {valChars: $});
+			assert.strictEqual(type.valChars, $);
+		});
+		it("should correctly install an valChars function", function() {
+			var type = Fluid.defineType("", {valChars: /h/});
+			assert.ok(type.valChars("h"));
+			assert.ok(!type.valChars("w"));
 		});
 	});
 });

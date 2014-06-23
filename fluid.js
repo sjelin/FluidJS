@@ -40,7 +40,7 @@
 		return Object.prototype.toString.call(x) === '[object Array]';
 	};
 
-	var jqFind = function($el, sel) {
+	function jqFind($el, sel) {
 		return sel == "" ? $el : $el.filter(sel).add($el.find(sel));
 	}
 
@@ -118,30 +118,98 @@
 			attr: typeAttr,
 			validate:	props.validate instanceof RegExp ?
 							props.validate.test.bind(props.validate) :
-						props.validate instanceof Function ?props.validate:
+						props.validate instanceof Function ? props.validate:
 						function() {return true;},
 			format:		props.format instanceof Function ? props.format :
 						function(x) {return x;},
-			unformat:	props.unformat instanceof Function ? props.unformat :
-						function(x) {return x;}
+			valChars:	props.valChars instanceof RegExp ?
+							props.valChars.test.bind(props.valChars) :
+						props.valChars instanceof Function ? props.valChars:
+						function() {return true;},
 		};
 	};
 
-	function ctListener(view, hash, $elem) {
-		var val = $elem.val();
+	function setCursorPos($elem, start, end)
+	{
+		if(arguments.length == 2)
+			end = start;
+		start = Math.min(start, end = Math.min(end, $elem.val().length));
+		/* istanbul ignore else */
+		if(elem.setSelectionRange)
+			elem.setSelectionRange(start, end);
+		else {
+			//IE<=8
+			var rng = elem.createTextRange();
+			rng.collapse(true);
+			rng.moveStart('character', start);
+			rng.moveEnd('character', end);
+			rng.select()
+		}
+	}
+
+	function getTextSel($elem) {
+		var elem = $elem[0];
+		/* istanbul ignore else */
+		if(elem.setSelectionRange)
+			return {s: elem.selectionStart, e: elem.selectionEnd};
+		else {
+			//IE<=8
+			var sel = document.selection.createRange();
+			var selLen = sel.text.length;
+			sel.moveStart('character', -elem.value.length);
+			var end = sel.text.length;
+			return {s: end-selLen, e: end};
+		}
+	}
+
+	function ctLogCursor(view, hash, $elem) {
+		if($elem.is(":focus"))
+			view.ctCursorPos[hash] = getTextSel($elem);
+	}
+
+	function transIndex(valChars, index, src, dest) {
+		var valCharsToPass = 0;
+		var i;
+		for(i = 0; i < index; i++)
+			if(valChars(src[i]))
+				valCharsToPass++;
+		for(i = 0; (i < dest.length) && (valCharsToPass > 0); i++)
+			if(valChars(dest[i]))
+				valCharsToPass--;
+		return i;
+	}
+
+	function ctKeyListener(view, hash, $elem) {
+		var curr = $elem.val();
 		var prev = view.prevVals[hash];
-		if(val != prev) {
-			val = type.unformat(val);
-			if(!type.validate(val))
+		if(curr != prev) {
+			var val = type.unformat(curr);
+			if(!type.validate(val)) {
 				$elem.val(prev);
-			else {
+				if($elem.is(":focus"))
+					setCursorPos($elem,	view.ctCursorPos[hash].s,
+										view.ctCursorPos[hash].e);
+			} else {
 				var listeners = view.ctListeners[hash];
 				for(var i = 0; i < listeners.length; i++)
 					listeners[i](val);
-				$elem.val(type.format(val));
+				var fVal = type.format(val);
+				if($elem.val() != fVal) {
+					var newTextSel = undefined;
+					if($elem.is(":focus")) {
+						var sel = getTextSel($elem);
+						newTextSel = {
+							s: transIndex(type.valChars, sel.s, curr, fVal),
+							e: transIndex(type.valChars, sel.e, curr, fVal)};
+					}
+					$elem.val(fVal);
+					if(newTextSel != undefined)
+						setCursorPos($elem, newTextSel.s, newTextSel.e);
+				}
 				view.prevVals[hash] = $elem.val();
 			}
 		}
+		ctLogCursor(view, hash, $elem);
 	};
 
 /***********************\
@@ -190,6 +258,7 @@
  *
  *	ctMap	- A map from hashes to custom type objects
  *	ctListeners	- A map from hashes to functions listening to the element
+ *	ctCursorPos - A map from hashes to cursor positions
  *
  *	listeners -	The function or object passed at declaration
  *	listenTrgts -	Map from selectors to places where the data needs to be
@@ -247,15 +316,16 @@
 
 		var inited = this.vals != null;
 		if(!inited) {
-			this.prevValues = {};
-			this.ctListeners = {};
-			for(var hash in this.ctMap) {
-				this.prevVals[hash] =
-					$view.find("["+ctHashAttr+"'="+hash+"']").val();
-				this.ctListeners[hash] = [];
-			}
 			this.$el = this.getFreshJQ();
 			this.vals = {};
+			this.prevValues = {};
+			this.ctListeners = {};
+			this.ctCursorPos = {};
+			for(var hash in this.ctMap) {
+				this.prevVals[hash] =
+					view.$el.find("["+ctHashAttr+"'="+hash+"']").val();
+				this.ctListeners[hash] = [];
+			}
 		}
 
 		//Set values using calc()
@@ -266,8 +336,14 @@
 			var cmds = this.valCommands[vname];
 			for(var i = 0; i < cmds.length; i++) {
 				var $elem = jqFind(this.$el, "["+cmds[i]+"]");
-				if($elem.val() != val)
-					$elem.val(val);
+				var fVal = val;
+				if($elem.is("["+ctHashAttr+"]"))
+					fVal = this.ctMap[$elem.attr(ctHashAttr)].format(fVal);
+				if($elem.val() != fVal) {
+					$elem.val(fVal);
+					if($elem.is(":focus"))
+						setCursorPos($elem, fVal.length);
+				}
 			}
 		}
 
@@ -545,11 +621,16 @@
 			var $view = $(props.template);
 			for(hash in View.prototype.ctMap) {
 				var $elem = $view.find("["+ctHashAttr+"'="+hash+"']");
-				var listener = ctListener.bind(null, view, hash, $elem);
-				$elem.keypress(listener);
-				$elem.keydown(listener);
-				$elem.keyup(listener);
-				$elem.change(listener);
+				var keyListener = ctKeyListener.bind(null,this,hash,$elem);
+				var clickListener = ctLogCursor.bind(null,this,hash,$elem);
+				$elem.keypress(keyListener);
+				$elem.keydown(keyListener);
+				$elem.keyup(keyListener);
+				$elem.change(keyListener);
+				$elem.click(clickListener);
+				$elem.mouseup(clickListener);
+				$elem.mousedown(clickListener);
+				$elem.focus(clickListener);
 			}
 			return $view;
 		};
