@@ -92,9 +92,9 @@
 		return ret;
 	};
 
-/**********************\
- *  Fluid.defineType  *
-\**********************/
+/***************************\
+ *  Fluid.defineInputType  *
+\***************************/
 	//NOTE: the real work is done in the view code
 
 	var customTypes = {}
@@ -106,7 +106,7 @@
 	function type_reformat(x) {
 		return this.format(this.unformat(x));
 	}
-	fluid.defineType = function(typeName, props) {
+	fluid.defineInputType = function(typeName, props) {
 		props = props || {};
 		var typeAttr = undefined;
 		var typeAttrs = props.typeAttr || typeName;
