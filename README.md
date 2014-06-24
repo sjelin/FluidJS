@@ -159,14 +159,34 @@ instead of just raw HTML injections.  Finally, Fuild.js needs to have
 explicit and limited syntax in its templating language so that content can be
 quickly understood and updated.
 
-In that vain, there are three ways to inject values/views in Fluid.js'
+In that vain, there are four ways to inject values/views in Fluid.js'
 templating language:
 
 1.	`<tag attr={{varName}}>`
 
 	The above will link the attribute `attr` with the variable `varName`
 
-2.	`<tag>{{varName}}</tag>`
+2.	`<tag attr="(some text){{varName}}(more text)">`
+
+	The above will concatenate raw strings and variable names.  For instance,
+	you might want to use `href="{{domain}}.com"`.  You can use more than one
+	variable as well (e.g. `"{{domain}}.{{tld}}"`).
+
+	There is exactly one restriction placed on raw strings inside the quotes:
+	they cannot contain the same quote character as is used to start/end the
+	string.  So `greet="Hello, my name is \"{{name}}\""` is invalid.
+	Instead, you must use `greet='Hello, my name is "{{name}}"'`.  Note that
+	`Hello, my name's "{{name}}"` is impossible to do with this command,
+	because it uses both types of quotes.  This restriction is needed to make
+	this command detectable using regular expressions.
+
+	Because of the above restriction, and because it is generally less
+	efficient than method 1 (including some optimizations behind the scenes),
+	method 1 is the prefered, though only slightly.  Commands like
+	`attr="{{varName}}"` will be automatically rewritten to
+	`attr={{varName}}`.
+
+3.	`<tag>{{varName}}</tag>`
 
 	The above will link the inner text of a tag with the variable `varName`.
 	Not that this command cannot be used to set HTML content.  It sets text.
@@ -174,7 +194,7 @@ templating language:
 	inside a tag and also have other content inside the tag.  If you are
 	using this command, this injection must be the sole contents of the tag.
 
-3.	`[[viewName]]`
+4.	`[[viewName]]`
 
 	The above will inject the view or collection of views in the variable
 	named `viewName`.

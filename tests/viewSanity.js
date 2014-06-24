@@ -55,6 +55,22 @@ describe("Views", function() {
 			view.update();
 			assert.equal(view.$el.attr("href"), "www");
 		});
+		it("should correctly set a complex property", function() {
+			var view = new (Fluid.compileView({
+				template: "<a href='http://{{sub}}.{{domain}}.{{tld}}'></a>",
+				fill: function() {return {	sub: "www", domain: "google",
+											tld: "com"};}}))();
+			view.update();
+			assert.equal(view.$el.attr("href"), "http://www.google.com");
+		});
+		it("should correctly set a complex value", function() {
+			var view = new (Fluid.compileView({
+				template:'<a value="http://{{sub}}.{{domain}}.{{tld}}"></a>',
+				fill: function() {return {	sub: "www", domain: "google",
+											tld: "com"};}}))();
+			view.update();
+			assert.equal(view.$el.val(), "http://www.google.com");
+		});
 		it("should correctly set text", function() {
 			var view = new (Fluid.compileView({
 				template: "<a>{{text}}</a>",

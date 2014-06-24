@@ -55,6 +55,24 @@ describe("View Coverage", function() {
 			}, noMemoize: true}))();
 	};
 	describe("(simple edge cases)", function() {
+		it("should rewrite complex command (\") if possible", function() {
+			var view = new (Fluid.compileView({
+				template: "<a href=\"{{href}}\"></a>",
+				fill: function() {return {href: "www"};}}))();
+			assert.equal(Object.keys(view.attrCommands).length, 1);	
+			assert.equal(Object.keys(view.cmplxAttrCmds).length, 0);	
+			view.update();
+			assert.equal(view.$el.attr("href"), "www");
+		});
+		it("should rewrite complex command (') if possible", function() {
+			var view = new (Fluid.compileView({
+				template: "<a href='{{href}}'></a>",
+				fill: function() {return {href: "www"};}}))();
+			assert.equal(Object.keys(view.attrCommands).length, 1);	
+			assert.equal(Object.keys(view.cmplxAttrCmds).length, 0);	
+			view.update();
+			assert.equal(view.$el.attr("href"), "www");
+		});
 		it("should work with multiple value cmds per var", function() {
 			var view = new (Fluid.compileView({
 				template:	"<input value={{val}}></input>"+
@@ -101,6 +119,13 @@ describe("View Coverage", function() {
 			assert.equal(view.$el.text(), "text");
 			view.update();
 			assert.equal(view.$el.text(), "text");
+		});
+		it("should leave old complex attr if no new one set", function() {
+			var view = view12Fact("<a href='{{x}}.com'></a>", "google");
+			view.update();
+			assert.equal(view.$el.attr("href"), "google.com");
+			view.update();
+			assert.equal(view.$el.attr("href"), "google.com");
 		});
 		it("should leave old subview if no new one set", function() {
 			var view = view12Fact("<a>[[x]]</a>",
