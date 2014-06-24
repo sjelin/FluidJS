@@ -11,22 +11,22 @@
 		// This accentuates the need for the creation of a real window
 		// e.g. var Fluid = require("./fluid.js")(window);
 		module.exports =
-			global.jQuery? /* istanbul ignore next */ factory(global.jQuery):
 			global.document ? /* istanbul ignore next */
-					factory(require("jquery")) :
+					factory(global, global.jQuery || require("jquery")) :
 			(function() {
 				var jQueryFactory = require("jquery");
 				return function(window) {
-					return factory(window.jQuery || jQueryFactory(window));
+					return factory(window,
+									window.jQuery || jQueryFactory(window));
 				};
 			})();
 	} else {
-		global.Fluid = factory(jQuery);
+		global.Fluid = factory(global, jQuery);
 	}
 
 // Pass this if window is not defined yet
 }(typeof window !== "undefined" ?
-		/* istanbul ignore next */ window : this, function($) {
+		/* istanbul ignore next */ window : this, function(window, $) {
 	"use strict";
 
 	var fluid = {};
@@ -40,13 +40,13 @@
 		return Object.prototype.toString.call(x) === '[object Array]';
 	};
 
-	var jqFind = function($el, sel) {
+	function jqFind($el, sel) {
 		return sel == "" ? $el : $el.filter(sel).add($el.find(sel));
 	}
 
-/**********************\
+/***********************\
  *     Fluid.model     *
-\**********************/
+\***********************/
 
 	//See README.md for spec
 	function model_get() {return this()};
@@ -93,8 +93,166 @@
 	};
 
 /**********************\
- *  Fluid.compileView  *
+ *  Fluid.defineType  *
 \**********************/
+	//NOTE: the real work is done in the view code
+
+	var customTypes = {}
+	var ctHashAttr = "__fluid__custom_type_hash";
+
+	function type_unformat(x) {
+		return (x || "").split("").filter(this.valChars).join("");
+	}
+	function type_reformat(x) {
+		return this.format(this.unformat(x));
+	}
+	fluid.defineType = function(typeName, props) {
+		props = props || {};
+		var typeAttr = undefined;
+		var typeAttrs = props.typeAttr || typeName;
+		if(!isArray(typeAttrs))
+			typeAttrs = [typeAttrs];
+		var $i = $("<input>");
+		for(var i = 0; !typeAttr && (i < typeAttrs.length); i++)
+			/* instanbul ignore else */
+			if($i.attr("type", typeAttrs[i]).prop("type") == typeAttrs[i])
+				typeAttr = typeAttrs[i];
+		/* istanbul ignore if */
+		if(!typeAttr)
+			typeAttr = "text";
+
+		for(var i = 0; i < 3; i++) {
+			var k = ["validate", "format", "valChars"][i];
+			if((typeof props[k] == "object")&&!(props[k] instanceof RegExp))
+				props[k] = props[k][typeAttr]
+		}
+		var valChars =	props.valChars instanceof RegExp ?
+							props.valChars.test.bind(props.valChars) :
+						props.valChars instanceof Function ? props.valChars:
+						function() {return true;};
+		return customTypes[typeName] = { //Return for testing reasons
+			attr: typeAttr,
+			validate:	props.validate instanceof RegExp ?
+							props.validate.test.bind(props.validate) :
+						props.validate instanceof Function ? props.validate:
+						function() {return true;},
+			format:		props.format instanceof Function ? props.format :
+						function(x) {return x;},
+			valChars:	valChars,
+			unformat:	type_unformat,
+			reformat:	type_reformat
+		};
+	};
+
+	//TODO remove when jsdom fixes get pushed
+	/* istanbul ignore next */
+	function setCursorPos($elem, start, end, ctHash)
+	{
+		if(		($elem[0] instanceof window.HTMLInputElement) ||
+				($elem[0] instanceof window.HTMLTextAreaElement)) try {
+			if(arguments.length == 2)
+				end = start;
+			start = Math.min(start, end = Math.min(end, $elem.val().length));
+			/* istanbul ignore else */
+			if(elem.setSelectionRange)
+				elem.setSelectionRange(start, end);
+			else {
+				//IE<=8
+				var rng = elem.createTextRange();
+				rng.collapse(true);
+				rng.moveStart('character', start);
+				rng.moveEnd('character', end);
+				rng.select()
+			}
+			if(ctHash)
+				view.ctCursorPos[ctHash] = {s: start, e: end};
+		} catch(ex) {}
+	}
+
+	//TODO remove when jsdom fixes get pushed
+	/* istanbul ignore next */
+	function getTextSel($elem) {
+		var elem = $elem[0];
+		if(		(elem instanceof window.HTMLInputElement) ||
+				(elem instanceof window.HTMLTextAreaElement)) try {
+			/* istanbul ignore else */
+			if(elem.setSelectionRange)
+				return {s: elem.selectionStart, e: elem.selectionEnd};
+			else {
+				//IE<=8
+				var sel = document.selection.createRange();
+				var selLen = sel.text.length;
+				sel.moveStart('character', -elem.value.length);
+				var end = sel.text.length;
+				return {s: end-selLen, e: end};
+			}
+		} catch(ex) {}
+		return {s: 0, e: 0};
+	}
+
+	function ctLogCursor(view, hash, $elem) {
+		if($elem.is(":focus"))
+			view.ctCursorPos[hash] = getTextSel($elem);
+	}
+
+	/* istanbul ignore next */
+	function transIndex(valChars, index, src, dest) {
+		var valCharsToPass = 0;
+		var i;
+		for(i = 0; i < index; i++)
+			if(valChars(src[i]))
+				valCharsToPass++;
+		for(i = 0; (i < dest.length) && (valCharsToPass > 0); i++)
+			if(valChars(dest[i]))
+				valCharsToPass--;
+		while((i < dest.length) && !valChars(dest[i]))
+			i++;
+		return i;
+	}
+
+	/* istanbul ignore next */
+	function ctKeyListener(view, hash, $elem) {
+		var curr = $elem.val();
+		var prev = view.prevValues[hash];
+		if(curr != prev) {
+			var type = view.ctMap[hash];
+			var val = type.unformat(curr);
+			if(!type.validate(val)) {
+				//Revert
+				$elem.val(prev);
+				if($elem.is(":focus"))
+					setCursorPos($elem,	view.ctCursorPos[hash].s,
+										view.ctCursorPos[hash].e);
+			} else {
+				if(type.unformat(prev) != val) {
+					//Call listeners
+					var listeners = view.ctListeners[hash];
+					for(var i = 0; i < listeners.length; i++)
+						listeners[i](val);
+				}
+				var fVal = type.format(val);
+				if($elem.val() != fVal) {
+					//Reformat
+					var newTextSel = undefined;
+					if($elem.is(":focus")) {
+						var sel = getTextSel($elem);
+						newTextSel = {
+							s: transIndex(type.valChars, sel.s, curr, fVal),
+							e: transIndex(type.valChars, sel.e, curr, fVal)};
+					}
+					$elem.val(fVal);
+					if(newTextSel != undefined)
+						setCursorPos($elem, newTextSel.s, newTextSel.e);
+				}
+				view.prevValues[hash] = $elem.val();
+			}
+		}
+		ctLogCursor(view, hash, $elem);
+	};
+
+/***********************\
+ *  Fluid.compileView  *
+\***********************/
 
 /****************************************************************************
  *	HOW VIEWS WORK
@@ -120,7 +278,7 @@
  *
  *	typeHash - A random, unique string
  *
- *	calc() -	The function passed when the view class was declared
+ *	fill() -	The function passed when the view class was declared
  *	addControls() - The function passed when the view class was declared  
  *	updateControls() - The function passed when the view class was declared  
  *	noMemoize -	A flag saying that the render code for this view should
@@ -130,26 +288,30 @@
  *				the MVC if the MVC decides it would be more efficient.
  *
  *	getFreshJQ -	Generates a jQuery object based on the template ready to
- *					be updated based on the results of calc()
+ *					be updated based on the results of fill()
  *	valCommands  -	map ("varname" -> ["idAttr"])
  *	attrCommands -	map ("varname" -> "idAttr" -> "attrToSet")
  *	textCommands -	map ("varname" -> ["idAttr"])
  *	viewCommands -	map ("viewname" -> "id")
  *
+ *	ctMap	- A map from hashes to custom type objects
+ *	ctListeners	- A map from hashes to functions listening to the element
+ *	ctCursorPos - A map from hashes to cursor positions
+ *
  *	listeners -	The function or object passed at declaration
  *	listenTrgts -	Map from selectors to places where the data needs to be
  *					pushed.  Either the same as listeners or the result of
  *					calling listeners
- *	watch(sel) -	Watches an element for changes in its value, pushing the
- *					new value to whatever listeners says
- *	prevValues -	Values of elements the last time they were checked.  Used
+ *	prevValues -	Values of elements the last time they were checked.
+ *					Formatted, rather than stripped, values are used.  Used
  *					so that a value will only be pushed if it is different
- *					from the last value pushed.  Map from selectors to values
+ *					from the last value pushed.
+ *					Map from selectors or custom type hashes to values.
  *
- *	state -	The array which was last used as arguments for the calc()
- *			function.  Or, if the calc function hasn't been called yet, the
+ *	state -	The array which was last used as arguments for the fill()
+ *			function.  Or, if the fill function hasn't been called yet, the
  *			array of arguments passed into the constructor.
- *	vals -	The last result of the calc() function, undefined if calc()
+ *	vals -	The last result of the fill() function, undefined if fill()
  *			hasn't been called yet
  *
  *	oldStateHash -	A hash (in some sense) of the state the last time the
@@ -166,8 +328,8 @@
  *		1.	If the view parameter was specified, this.state = view.state
  *		2.	Unless the noMemoize flag is set, if the current state was used
  *			in the last update() call, skip the remaining steps
- *		2.	Run calc()
- *		3.	Use the result of the calc function to update this.$el
+ *		2.	Run fill()
+ *		3.	Use the result of the fill function to update this.$el
  *		4.	Call addControls() and updateControls() with the correct params
  */
 	function AbstractView() {}
@@ -189,15 +351,24 @@
 
 		var updateStart = new Date().getTime();
 
-		var newVals = this.calc.apply(this, this.state);
+		var newVals = this.fill.apply(this, this.state);
 
+		//Init
 		var inited = this.vals != null;
 		if(!inited) {
 			this.$el = this.getFreshJQ();
 			this.vals = {};
+			this.prevValues = {};
+			this.ctListeners = {};
+			this.ctCursorPos = {};
+			for(var hash in this.ctMap) {
+				var $elem = jqFind(this.$el, '['+ctHashAttr+'="'+hash+'"]');
+				this.prevValues[hash] = $elem.val();
+				this.ctListeners[hash] = [];
+			}
 		}
 
-		//Set values using calc()
+		//Set values using fill()
 		for(var vname in this.valCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -205,12 +376,19 @@
 			var cmds = this.valCommands[vname];
 			for(var i = 0; i < cmds.length; i++) {
 				var $elem = jqFind(this.$el, "["+cmds[i]+"]");
-				if($elem.val() != val)
-					$elem.val(val);
+				var fVal = val;
+				var ctHash = $elem.attr(ctHashAttr);
+				if(ctHash)
+					fVal = this.ctMap[ctHash].reformat(fVal);
+				if($elem.val() != fVal) {
+					$elem.val(fVal);
+					if($elem.is(":focus"))
+						setCursorPos($elem, fVal.length, ctHash);
+				}
 			}
 		}
 
-		//Set attributes using the result of calc()
+		//Set attributes using the result of fill()
 		for(var vname in this.attrCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -222,7 +400,7 @@
 				}
 		}
 
-		//Set the text of some elements using the result of calc()
+		//Set the text of some elements using the result of fill()
 		for(var vname in this.textCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -243,7 +421,7 @@
 				view.update(viewInfo);
 			updateStart += new Date().getTime();
 		}
-		//Update child views using the result of calc()
+		//Update child views using the result of fill()
 		for(var vname in this.viewCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -361,7 +539,7 @@
 								this.listeners.apply(this, this.state) :
 								this.listeners;
 		for(var sel in this.listenTrgts)
-			this.watch(sel);
+			watch(this, sel);
 
 		//Control code
 		if(!inited)
@@ -372,27 +550,33 @@
 		var updateTime = new Date().getTime() - updateStart;
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
-	AbstractView.prototype.watch = function(sel)
+	function watch(view, sel)
 	{
-		if(!this.prevValues.hasOwnProperty(sel)) {
-			var $elem = jqFind(this.$el, sel);
-			var view = this;
-			view.prevValues[sel] = $elem.val();
-			var hear = function() {
-				var val = $elem.val();
-				if(val != view.prevValues[sel]) {
-					view.prevValues[sel] = val;
-					var trgt = view.listenTrgts[sel] || [];
-					if(!isArray(trgt))
-						trgt = [trgt];
-					for(var i = 0; i < trgt.length; i++)
-						trgt[i](val);
+		function send(val) {
+			var trgt = view.listenTrgts[sel] || [];
+			if(!isArray(trgt))
+				trgt = [trgt];
+			for(var i = 0; i < trgt.length; i++)
+				trgt[i](val);
+		}
+		if(!view.prevValues.hasOwnProperty(sel)) {
+			var $elem = jqFind(view.$el, sel);
+			if($elem.is("["+ctHashAttr+"]")) {
+				view.prevValues[sel] = undefined;	//We just want to stop
+													//more listeners
+				view.ctListeners[$elem.attr(ctHashAttr)].push(send);
+			} else {
+				view.prevValues[sel] = $elem.val();
+				var hear = function() {
+					var val = $elem.val();
+					if(val != view.prevValues[sel])
+						send(view.prevValues[sel] = val);
 				}
+				$elem.keypress(hear);
+				$elem.keydown(hear);
+				$elem.keyup(hear);
+				$elem.change(hear);
 			}
-			$elem.keypress(hear);
-			$elem.keydown(hear);
-			$elem.keyup(hear);
-			$elem.change(hear);
 		}
 	}
 	
@@ -413,24 +597,24 @@
 			this.state = Array.prototype.slice.call(arguments, 0);
 		}
 		View.prototype = new AbstractView();
-		View.prototype.calc = props.calc || function(){return new Object();};
+		View.prototype.fill = props.fill || function(){return new Object();};
 		View.prototype.addControls = props.addControls || function(){};
 		View.prototype.updateControls = props.updateControls || function(){};
 		View.prototype.listeners = props.listeners || {};
 		View.prototype.noMemoize = !!props.noMemoize;
 		View.prototype.typeHash = rndStr();
-		View.prototype.prevValues = {};
 		
 		//Modify Template
 		View.prototype.valCommands = {};
 		View.prototype.attrCommands = {};
 		View.prototype.textCommands = {};
 		View.prototype.viewCommands = {};
-		props.template = props.template || "";
-		
-		props.template =
+		View.prototype.ctMap = {};
+		var template = props.template || "";
+
+		template =
 			//Value Commands
-			props.template.replace(/value={{\s*\w+\s*}}/g, function(match) {
+			template.replace(/value={{\s*\w+\s*}}/g, function(match) {
 				var vname = match.substr(8, match.length-10).trim();
 				var idAttr = rndStr();
 				if(View.prototype.valCommands[vname] == null)
@@ -462,15 +646,43 @@
 				var id = rndStr();
 				View.prototype.viewCommands[vname] = id;
 				return "<span id='"+id+"' style='display: none'></span>";
+			//Type Commands
+			}).replace(/type=["']\s*\w*\s*["']/g, function(match) {
+				var typeStr = match.substr(6, match.length-7).trim();
+				if(customTypes[typeStr]) {
+					var type = customTypes[typeStr];
+					var hash = rndStr();
+					View.prototype.ctMap[hash] = type;
+					var q = match.slice(-1);
+					return ctHashAttr+"="+q+hash+q+" type="+q+type.attr+q;
+				} else
+					return match;
 			});
-		View.prototype.getFreshJQ = function() {return $(props.template);};
+		View.prototype.getFreshJQ = function() {
+			var $view = $(template);
+			for(var hash in this.ctMap) {
+				var $el = jqFind($view, "["+ctHashAttr+"='"+hash+"']");
+				$el.val(this.ctMap[hash].reformat($el.val()));
+				var keyListener = ctKeyListener.bind(null,this,hash,$el);
+				var clickListener = ctLogCursor.bind(null,this,hash,$el);
+				$el.keypress(keyListener);
+				$el.keydown(keyListener);
+				$el.keyup(keyListener);
+				$el.change(keyListener);
+				$el.click(clickListener);
+				$el.mouseup(clickListener);
+				$el.mousedown(clickListener);
+				$el.focus(clickListener);
+			}
+			return $view;
+		};
 
 		return View;
 	};
 
-/*********************\
+/**********************\
  *  Fluid.attachView  *
-\*********************/
+\**********************/
 
 	fluid.attachView = function($elem, ViewClass) {
 		var models = Array.prototype.slice.call(arguments, 2);
