@@ -85,6 +85,9 @@ describe("Views", function() {
 		it("should use memoization in most basic case", function() {
 			var n = 0;
 			var view = new (Fluid.compileView({calc: function() {
+				var loopUntil = new Date()+10;
+				while(loopUntil > new Date())
+					;
 				if(++n == 2)
 					assert.fail(1, 2, "called calc() twice", "==");
 			}}))();

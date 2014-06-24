@@ -70,44 +70,139 @@ describe("Custome Types", function() {
 		beforeEach(function() {
 			Fluid.defineType("r", {typeAttr: "radio"});
 			Fluid.defineType("num", {validate: /^[0-9]*$/});
-			Fluid.defineType("num2", {valChars: /^[0-9]*$/});
+			Fluid.defineType("num2", {valChars: /[0-9]/});
 			Fluid.defineType("ccn", {format: function(x) {
+				if(!x)
+					return "";
 				for(var i = 4; i < x.length; i += 5)
-					x = x.slice(0,i)+"-"+x.slice(x);
+					x = x.slice(0,i)+"-"+x.slice(i);
 				return x;
-			}, valChars: /[0-9]/});
+			}, valChars: /[^-]/});
+		});
+		function makeView(type, val, listen) {
+			var props = {template: "<input"+
+				(type ? " type='"+type+"'" : "") +
+				(val ? " value='"+val+"'" : "") + "></input>"};
+			if(listen)
+				props.listeners = {input: listen};
+			var view = new (Fluid.compileView(props))();
+			view.update();
+			return view;
+		};
+		it("should not mess with normal types", function() {
+			var view = new (Fluid.compileView({
+					template: "<input type='text'></input>"}))();
+			view.update();
+			assert.ok(!view.$el.is("[__fluid__custom_type_hash]"));
 		});
 		it("should actually use the type set in typeAttr", function() {
+			assert.equal(makeView("r").$el.attr("type"), "radio");
 		});
 		it("should allow valid values", function() {
+			var view = makeView("num", "");
+			assert.equal(view.$el.val(), "");
+			view.$el.val("123");
+			view.$el.keypress();
+			assert.equal(view.$el.val(), "123");
 		});
 		it("should reject invalid values", function() {
+			var view = makeView("num", "123");
+			view.$el.val("abc");
+			view.$el.keypress();
+			assert.equal(view.$el.val(), "123");
 		});
 		it("should format initial values", function() {
+			assert.equal(makeView("ccn", "12345").$el.val(), "1234-5");
 		});
-		it("should unformat unformat values", function() {
+		it("should unformat initial values", function() {
+			assert.equal(makeView("num2", "1234-5").$el.val(), "12345");
 		});
 		it("should format new values", function() {
+			var view = makeView("ccn", "12345");
+			view.$el.val("123456789");
+			view.$el.change();
+			assert.equal(view.$el.val(), "1234-5678-9");
+		});
+		it("should format values from calc", function() {
+			var view = new (Fluid.compileView({
+					template: "<input type='ccn' value={{val}}></input>",
+					calc: function() {return {val: "12345"}}}))();
+			view.update();	
+			assert.equal(view.$el.val(), "1234-5");
 		});
 		it("should unformat new values", function() {
+			var view = makeView("num2", "12345");
+			view.$el.val("12,34,5-6--7!!ac89");
+			view.$el.change();
+			assert.equal(view.$el.val(), "123456789");
 		});
-		it("should push values to listeners", function() {
+		it("should push values to listeners", function(done) {
+			var view = makeView("num", "", function(num) {
+				assert.equal(num, "123");
+				done();
+			});
+			view.$el.val("123");
+			view.$el.change();
 		});
 		it("shouldn't push invalid values to listeners", function() {
+			var view = makeView("num", "", function(num) {
+				assert.fail(1, 0, "==");
+			});
+			view.$el.val("abc");
+			view.$el.change();
 		});
 		it("should push unformated values to listeners", function() {
+			var view = makeView("ccn", "", function(num) {
+				assert.equal(num, "12345");
+			});
+			view.$el.val("12-345");
+			view.$el.change();
+			assert.equal(view.$el.val(), "1234-5");
+		});
+		it("shouldn't push a value if unformatted it's the same", function(){
+			var view = makeView("num2", "", function(num) {
+				assert.fail(1, 0, "==");
+			});
+			view.$el.val("abc");
+			view.$el.change();
 		});
 	});
 	describe("(focused)", function() {
-		it("should move cursor to end if new value from model", function() {
-		});
-		it("should revert selection if invalid value", function() {
-		});
-		it("should translate selection to new format", function() {
-		});
+		it("should log cursor position");
+		it("should move cursor to end if new value from model");
+		it("should revert selection if invalid value");
+		it("should translate selection to new format");
 		it("shouldn't crash if tag doesn't support selection", function() {
+			var val = "";
+			var view = new (Fluid.compileView({
+					template: "<select type='ccn' value={{val}}}></select>",
+					calc: function() {return {val:val};},
+					noMemoize: true}))();
+			view.update();
+			$(window.document.body).append(view.$el);
+			view.$el.focus();//Log
+			val = "12345";//From calc
+			view.update();
+			view.$el.val("LOL");//INVALID
+			view.$el.change();
+			view.$el.val("123456789");//New
+			view.$el.change();
 		});
 		it("shouldn't crash if type doesn't support selection", function() {
+			var val = "";
+			var view = new (Fluid.compileView({
+					template: "<input type='ccn' value={{val}}></input>",
+					calc: function() {return {val:val};},
+					noMemoize: true}))();
+			view.update();
+			$(window.document.body).append(view.$el);
+			view.$el.focus();//Log
+			val = "12345";//From calc
+			view.update();
+			view.$el.val("LOL");//INVALID
+			view.$el.change();
+			view.$el.val("123456789");//New
+			view.$el.change();
 		});
 	});
 });

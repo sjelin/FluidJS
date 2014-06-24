@@ -444,7 +444,7 @@ Fluid.defineInputType("tel", {
 			return val;
 
 		//We will assume that it's a US phone number
-		if(val.length == 0)
+		if(!val || val.length == 0)
 			return "";
 		else if(val.slice(0,1) == "1") {
 			return "1" +(val.length <= 1 ? "" : " ("+val.slice(1,3)+")"	+
