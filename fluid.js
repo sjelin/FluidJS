@@ -293,6 +293,13 @@
  *	attrCommands -	map ("varname" -> "idAttr" -> "attrToSet")
  *	textCommands -	map ("varname" -> ["idAttr"])
  *	viewCommands -	map ("viewname" -> "id")
+ *	cmplxAttrCmds -	map ("idAttr" -> cmdObj)
+ *						cmdObj has the following properties:
+ *							attr: The attribute to set
+ *							format:	A description of what to put in the
+ *									attribute.  Array of strings.  Even
+ *									indexed elements are raw strings, and odd
+ *									indexed ones are variable names
  *
  *	ctMap	- A map from hashes to custom type objects
  *	ctListeners	- A map from hashes to functions listening to the element
@@ -374,18 +381,8 @@
 				continue;
 			var val = newVals[vname];
 			var cmds = this.valCommands[vname];
-			for(var i = 0; i < cmds.length; i++) {
-				var $elem = jqFind(this.$el, "["+cmds[i]+"]");
-				var fVal = val;
-				var ctHash = $elem.attr(ctHashAttr);
-				if(ctHash)
-					fVal = this.ctMap[ctHash].reformat(fVal);
-				if($elem.val() != fVal) {
-					$elem.val(fVal);
-					if($elem.is(":focus"))
-						setCursorPos($elem, fVal.length, ctHash);
-				}
-			}
+			for(var i = 0; i < cmds.length; i++)
+				setVal(this, jqFind(this.$el, "["+cmds[i]+"]"), val);
 		}
 
 		//Set attributes using the result of fill()
@@ -410,6 +407,26 @@
 				for(var i = 0; i < idAttrs.length; i++)
 					jqFind(this.$el, "["+idAttrs[i]+"]").text(val);
 			}
+		}
+
+		//Set more complex attributes using the result of fill()
+		for(var idAttr in this.cmplxAttrCmds) {
+			var cmd = this.cmplxAttrCmds[idAttr];
+			var val = "";
+			for(var i = 0; (val != undefined) && i < cmd.format.length; i++)
+				if(i%2 == 0)
+					val += cmd.format[i];
+				else if(newVals.hasOwnProperty(cmd.format[i]))
+					val += newVals[cmd.format[i]];
+				else
+					val = undefined;
+			if(val == undefined)
+				continue;
+			var $elem = jqFind(this.$el, "["+idAttr+"]");
+			if(cmd.attr.toUpperCase() == "VALUE")
+				setVal(this, $elem, val);
+			else
+				$elem.attr(cmd.attr, val);
 		}
 
 		//Update a child view, but don't count that time towards updateTime
@@ -550,6 +567,17 @@
 		var updateTime = new Date().getTime() - updateStart;
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
+	function setVal(view, $elem, val)
+	{
+		var ctHash = $elem.attr(ctHashAttr);
+		if(ctHash)
+			val = view.ctMap[ctHash].reformat(val);
+		if($elem.val() != val) {
+			$elem.val(val);
+			if($elem.is(":focus"))
+				setCursorPos($elem, val.length, ctHash);
+		}
+	}
 	function watch(view, sel)
 	{
 		function send(val) {
@@ -608,14 +636,20 @@
 		View.prototype.valCommands = {};
 		View.prototype.attrCommands = {};
 		View.prototype.textCommands = {};
+		View.prototype.cmplxAttrCmds = {};
 		View.prototype.viewCommands = {};
 		View.prototype.ctMap = {};
 		var template = props.template || "";
 
 		template =
 			//Value Commands
-			template.replace(/value={{\s*\w+\s*}}/g, function(match) {
-				var vname = match.substr(8, match.length-10).trim();
+			template.replace(/[^\s]+=['"]{{\s*\w+\s*}}['"]/g,function(match){
+				var i = match.lastIndexOf('"{{');
+				if(i == -1)
+					i = match.lastIndexOf("'{{");
+				return match.slice(0,i) + match.slice(i+1, -1);
+			}).replace(/value={{\s*\w+\s*}}/g, function(match) {
+				var vname = match.slice(8,-2).trim();
 				var idAttr = rndStr();
 				if(View.prototype.valCommands[vname] == null)
 					View.prototype.valCommands[vname] = [];
@@ -623,9 +657,9 @@
 				return idAttr;
 			//Attribute Commands
 			}).replace(/[^\s]+={{\s*\w+\s*}}/g, function(match) {
-				var i = match.indexOf("=");
-				var aname = match.substr(0, i);
-				var vname = match.substr(i+3, match.length-i-5).trim();
+				var i = match.lastIndexOf("=");
+				var aname = match.slice(0, i);
+				var vname = match.slice(i+3, -2).trim();
 				var idAttr = rndStr();
 				if(View.prototype.attrCommands[vname] == null)
 					View.prototype.attrCommands[vname] = {};
@@ -633,22 +667,32 @@
 				return idAttr;
 			//Text Commands
 			}).replace(/>\s*{{\s*\w+\s*}}\s*</g, function(match) {
-				var vname = match.substr(1, match.length-2).trim();
-				vname = vname.substr(2, vname.length-4).trim();
+				var vname = match.slice(1, -1).trim().slice(2, -2).trim();
 				var idAttr = rndStr();
 				if(View.prototype.textCommands[vname] == null)
 					View.prototype.textCommands[vname] = [];
 				View.prototype.textCommands[vname].push(idAttr);
 				return " "+idAttr+"><";
+			//Complex Attribute Commands
+			}).replace(/[^\s]+=(?:"[^"]*?{{\s*\w+\s*}}(?:[^"]*?[^\\])?"|'[^']*?{{\s*\w+\s*}}(?:[^']*?[^\\])?')/g, function(match) {
+				var i = match.indexOf("=");
+				var attr = match.substr(0, i);
+				var q = match.substr(i+1, 1);
+				var	format=match.slice(i+2, -1).split(/{{|}}/);
+				for(i = 0; i < format.length; i+=2)
+					format[i] = eval(q+format[i]+q);
+				var id = rndStr();
+				View.prototype.cmplxAttrCmds[id] = {attr:attr,format:format};
+				return id;
 			//View Commands
 			}).replace(/\[\[\s*\w+\s*\]\]/g, function(match) {
-				var vname = match.substr(2, match.length-4).trim();
+				var vname = match.slice(2, -2).trim();
 				var id = rndStr();
 				View.prototype.viewCommands[vname] = id;
 				return "<span id='"+id+"' style='display: none'></span>";
 			//Type Commands
 			}).replace(/type=["']\s*\w*\s*["']/g, function(match) {
-				var typeStr = match.substr(6, match.length-7).trim();
+				var typeStr = match.slice(6, -1).trim();
 				if(customTypes[typeStr]) {
 					var type = customTypes[typeStr];
 					var hash = rndStr();
