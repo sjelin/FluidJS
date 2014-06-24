@@ -20,8 +20,8 @@ describe("Views", function() {
 		it("shouldn't crash compiling a template w/ a sub-view", function() {
 			Fluid.compileView({template: "<a>[[subview]]</a>"});
 		});
-		it("shouldn't crash compiling w/ calc() fun", function() {
-			Fluid.compileView({calc: function(){return {hello: "world"};}});
+		it("shouldn't crash compiling w/ fill() fun", function() {
+			Fluid.compileView({fill: function(){return {hello: "world"};}});
 		});
 		it("shouldn't crash compiling w/ listeners", function() {
 			Fluid.compileView({	listeners: {"input" : $.noop},
@@ -44,28 +44,28 @@ describe("Views", function() {
 		it("should correctly set a value", function() {
 			var view = new (Fluid.compileView({
 				template: "<input value={{val}}></input>",
-				calc: function() {return {val: "val"};}}))();
+				fill: function() {return {val: "val"};}}))();
 			view.update();
 			assert.equal(view.$el.val(), "val");
 		});
 		it("should correctly set a property", function() {
 			var view = new (Fluid.compileView({
 				template: "<a href={{href}}></a>",
-				calc: function() {return {href: "www"};}}))();
+				fill: function() {return {href: "www"};}}))();
 			view.update();
 			assert.equal(view.$el.attr("href"), "www");
 		});
 		it("should correctly set text", function() {
 			var view = new (Fluid.compileView({
 				template: "<a>{{text}}</a>",
-				calc: function() {return {text: "Hello, World!"};}}))();
+				fill: function() {return {text: "Hello, World!"};}}))();
 			view.update();
 			assert.equal(view.$el.text(), "Hello, World!");
 		});
 		it("should correctly set a sub view", function() {
 			var view = new (Fluid.compileView({
 				template: "<a>[[sub]]</a>",
-				calc: function() {return {sub: 
+				fill: function() {return {sub: 
 					new (Fluid.compileView({template: "<br></br>"}))()};}
 			}))();
 			view.update();
@@ -73,7 +73,7 @@ describe("Views", function() {
 		});
 		it("should update with new info", function() {
 			var View = Fluid.compileView({template: "<a href={{href}}></a>",
-				calc: function(href) {return {href: href};}});
+				fill: function(href) {return {href: href};}});
 			var view = new View("yahoo.com");
 			view.update();
 			assert.equal(view.$el.attr("href"), "yahoo.com");
@@ -84,19 +84,19 @@ describe("Views", function() {
 	describe("(memoization)", function() {
 		it("should use memoization in most basic case", function() {
 			var n = 0;
-			var view = new (Fluid.compileView({calc: function() {
+			var view = new (Fluid.compileView({fill: function() {
 				var loopUntil = new Date()+10;
 				while(loopUntil > new Date())
 					;
 				if(++n == 2)
-					assert.fail(1, 2, "called calc() twice", "==");
+					assert.fail(1, 2, "called fill() twice", "==");
 			}}))();
 			view.update();
 			view.update();
 		});
 		it("should respect noMemoize", function(done) {
 			var n = 0;
-			var view = new (Fluid.compileView({calc: function() {
+			var view = new (Fluid.compileView({fill: function() {
 				if(++n == 2)
 					done();
 			}, noMemoize: true}))();
@@ -105,7 +105,7 @@ describe("Views", function() {
 		});
 		it("should not memoize if data is new", function(done) {
 			var n = 0;
-			var View = Fluid.compileView({calc: function() {
+			var View = Fluid.compileView({fill: function() {
 				if(++n == 2)
 					done();
 			}});
@@ -221,9 +221,9 @@ describe("Views", function() {
 	describe("(complex subviews)", function() {
 		it("should update single subviews", function() {
 			var SubView = Fluid.compileView({template: "<s>{{text}}</s>",
-							calc: function(t) {return {text:t};}});
+							fill: function(t) {return {text:t};}});
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-					calc: function(t) {return {s: new SubView(t)};}}))("");
+					fill: function(t) {return {s: new SubView(t)};}}))("");
 			view.update();
 			assert.equal(view.$el.find("s").text(), "");
 			view.state = ["txt"];
@@ -234,7 +234,7 @@ describe("Views", function() {
 			var SubView = Fluid.compileView({template: "<s></s>"});
 			var n = -1;
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-					calc: function() {
+					fill: function() {
 						var s = [];
 						n++;
 						while(s.length < n)
@@ -254,7 +254,7 @@ describe("Views", function() {
 			var SubView = Fluid.compileView({template: "<s></s>"});
 			var n = 4;
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-					calc: function() {
+					fill: function() {
 						var s = [];
 						n--;
 						while(s.length < n)
@@ -274,7 +274,7 @@ describe("Views", function() {
 			var SubView = Fluid.compileView({template: "<s></s>"});
 			var n = -1;
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-					calc: function() {
+					fill: function() {
 						var s = {};
 						n++;
 						while(Object.keys(s).length < n)
@@ -294,7 +294,7 @@ describe("Views", function() {
 			var SubView = Fluid.compileView({template: "<s></s>"});
 			var n = 4;
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-					calc: function() {
+					fill: function() {
 						var s = {};
 						n--;
 						while(Object.keys(s).length < n)
@@ -320,7 +320,7 @@ describe("Views", function() {
 			subViews.a = SubViewFact("a");
 			subViews.z = SubViewFact("z");
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-						calc: function() { return {s: subViews}; }}))();
+						fill: function() { return {s: subViews}; }}))();
 			view.update();
 			assert.equal(view.$el.children()[0].tagName.toUpperCase(), "A");
 			assert.equal(view.$el.children()[1].tagName.toUpperCase(), "E");
@@ -337,7 +337,7 @@ describe("Views", function() {
 			subViews.a = SubViewFact("a");
 			subViews.z = SubViewFact("z");
 			var view = new (Fluid.compileView({template: "<v>[[s]]</v>",
-						calc: function() { return {s: subViews}; }}))();
+						fill: function() { return {s: subViews}; }}))();
 			view.update();
 			assert.equal(view.$el.children()[0].tagName.toUpperCase(), "Z");
 			assert.equal(view.$el.children()[1].tagName.toUpperCase(), "E");

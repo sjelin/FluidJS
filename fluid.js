@@ -278,7 +278,7 @@
  *
  *	typeHash - A random, unique string
  *
- *	calc() -	The function passed when the view class was declared
+ *	fill() -	The function passed when the view class was declared
  *	addControls() - The function passed when the view class was declared  
  *	updateControls() - The function passed when the view class was declared  
  *	noMemoize -	A flag saying that the render code for this view should
@@ -288,7 +288,7 @@
  *				the MVC if the MVC decides it would be more efficient.
  *
  *	getFreshJQ -	Generates a jQuery object based on the template ready to
- *					be updated based on the results of calc()
+ *					be updated based on the results of fill()
  *	valCommands  -	map ("varname" -> ["idAttr"])
  *	attrCommands -	map ("varname" -> "idAttr" -> "attrToSet")
  *	textCommands -	map ("varname" -> ["idAttr"])
@@ -308,10 +308,10 @@
  *					from the last value pushed.
  *					Map from selectors or custom type hashes to values.
  *
- *	state -	The array which was last used as arguments for the calc()
- *			function.  Or, if the calc function hasn't been called yet, the
+ *	state -	The array which was last used as arguments for the fill()
+ *			function.  Or, if the fill function hasn't been called yet, the
  *			array of arguments passed into the constructor.
- *	vals -	The last result of the calc() function, undefined if calc()
+ *	vals -	The last result of the fill() function, undefined if fill()
  *			hasn't been called yet
  *
  *	oldStateHash -	A hash (in some sense) of the state the last time the
@@ -328,8 +328,8 @@
  *		1.	If the view parameter was specified, this.state = view.state
  *		2.	Unless the noMemoize flag is set, if the current state was used
  *			in the last update() call, skip the remaining steps
- *		2.	Run calc()
- *		3.	Use the result of the calc function to update this.$el
+ *		2.	Run fill()
+ *		3.	Use the result of the fill function to update this.$el
  *		4.	Call addControls() and updateControls() with the correct params
  */
 	function AbstractView() {}
@@ -351,7 +351,7 @@
 
 		var updateStart = new Date().getTime();
 
-		var newVals = this.calc.apply(this, this.state);
+		var newVals = this.fill.apply(this, this.state);
 
 		//Init
 		var inited = this.vals != null;
@@ -368,7 +368,7 @@
 			}
 		}
 
-		//Set values using calc()
+		//Set values using fill()
 		for(var vname in this.valCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -388,7 +388,7 @@
 			}
 		}
 
-		//Set attributes using the result of calc()
+		//Set attributes using the result of fill()
 		for(var vname in this.attrCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -400,7 +400,7 @@
 				}
 		}
 
-		//Set the text of some elements using the result of calc()
+		//Set the text of some elements using the result of fill()
 		for(var vname in this.textCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -421,7 +421,7 @@
 				view.update(viewInfo);
 			updateStart += new Date().getTime();
 		}
-		//Update child views using the result of calc()
+		//Update child views using the result of fill()
 		for(var vname in this.viewCommands) {
 			if(!newVals.hasOwnProperty(vname))
 				continue;
@@ -597,7 +597,7 @@
 			this.state = Array.prototype.slice.call(arguments, 0);
 		}
 		View.prototype = new AbstractView();
-		View.prototype.calc = props.calc || function(){return new Object();};
+		View.prototype.fill = props.fill || function(){return new Object();};
 		View.prototype.addControls = props.addControls || function(){};
 		View.prototype.updateControls = props.updateControls || function(){};
 		View.prototype.listeners = props.listeners || {};

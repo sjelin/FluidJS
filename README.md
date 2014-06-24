@@ -217,7 +217,7 @@ New classes of views are declared as follows:
 ```js
 	var ViewClass = Fluid.compileView({
 		template: /* String */,
-		calc: /* Function */,
+		fill: /* Function */,
 		addControls: /* Function */,
 		updateControls: /* Function */,
 		listeners: /* Object or Function */,
@@ -229,7 +229,7 @@ All the properties in the above code are optional.
 
 The `template` property is the template for the view.
 
-The `calc` property is the function which computes the values that are used
+The `fill` property is the function which computes the values that are used
 to fill in the template.  This job includes passing the relevant information
 along to child views.  Once these values are computed, they are returned in
 the form of an object, where the key names in the object line up with the
@@ -270,14 +270,14 @@ Where `$elem` is an object which will be replaced by the root view,
 `ViewClass` is the class of the root view, and `model1, model2, ...` are the
 models which the root view will be based off of.
 
-Child views are attached to their parent during the `calc` function through
+Child views are attached to their parent during the `fill` function through
 commands like the following:
 
 ```js
 	ret.childView = new ViewClass([param1[, param2[, ...]]]);
 ```
 
-Where `ret` is the object which `calc` will return, `childView` is the name
+Where `ret` is the object which `fill` will return, `childView` is the name
 of the child view in the template, `ViewClass` is the class of the child
 view, and `param1, param2, ...` is the information which the child view will
 be based off.
@@ -291,12 +291,12 @@ To see this all in action, check out
 
 By default, this is `""`
 
-#### The `calc` function
+#### The `fill` function
 
-If the view is a root view, then the parameters to the `calc` function are
+If the view is a root view, then the parameters to the `fill` function are
 the values of the models which the view is being based on.  If the view is
-a child view, then the parameters to the `calc` function are the values which
-were passed to it by its parent's `calc` function.
+a child view, then the parameters to the `fill` function are the values which
+were passed to it by its parent's `fill` function.
 
 A collection of views can either be an array or an object.  By default, if a
 collection is an object, the order in which the views are inserted into the
@@ -311,16 +311,16 @@ value, according to the string conversion of the key.
 If the returned object is missing a property needed to fill in the template,
 then that part of the template will not be updated.  For instance, if the
 template says an input box should be filled in by the `val` property, but the
-`val` property is missing from the object returned by `calc`, then whatever
+`val` property is missing from the object returned by `fill`, then whatever
 the user has typed into the input box will be left alone.  Note that there is
 a difference between a property being set to `undefined` and the property
 not being specified.
 
-Primarily, the properties of the object returned by the `calc` function are
+Primarily, the properties of the object returned by the `fill` function are
 used directly to fill in the template.  However, there may be special
 properties in the future.
 
-By default, `calc` is set to `function() {return new Object();}`
+By default, `fill` is set to `function() {return new Object();}`
 
 #### The `addControls` and `updateControls` functions
 
@@ -328,9 +328,9 @@ The parameters of `updateControls` are:
 
 1. `true` iff the view has already been initialized
 2. The jQuery object representing representing this view
-3. The first parameter to the `calc` function, if one exists
-4. The second parameter to the `calc` function, if one exists
-5. The third parameter to the `calc` function, if one exists
+3. The first parameter to the `fill` function, if one exists
+4. The second parameter to the `fill` function, if one exists
+5. The third parameter to the `fill` function, if one exists
 6. Etc.
 
 `setControls` has the same parameters, except for the first one, which is
@@ -373,7 +373,7 @@ pushed to functions:
 
 Also, `listeners` can be a function returning an object rather than an
 object directly.  In that case, the parameters to the function are the same
-as they are for the `calc` function.
+as they are for the `fill` function.
 
 The default value for `listeners` is `{}`.  As a special case, the empty
 string `""` is interpreted as the selector for the root of the template.

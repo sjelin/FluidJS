@@ -24,7 +24,7 @@ describe("MVC", function() {
 			var m = Fluid.newModel(1);
 			Fluid.attachView($a.find("t"), Fluid.compileView({
 				template: "<b m={{m}}></b>",
-				calc: function(m) {return {m:m};}
+				fill: function(m) {return {m:m};}
 			}), m);
 			assert.equal($a.find("b").attr("m"), m.get());
 		});
@@ -33,7 +33,7 @@ describe("MVC", function() {
 			var m = Fluid.newModel(1);
 			Fluid.attachView($a.find("t"), Fluid.compileView({
 				template: "<b m={{m}}></b>",
-				calc: function(m) {return {m:m};}
+				fill: function(m) {return {m:m};}
 			}), m);
 			assert.equal($a.find("b").attr("m"), m.get());
 			m.set(Math.random());

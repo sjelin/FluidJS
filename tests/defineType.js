@@ -123,10 +123,10 @@ describe("Custome Types", function() {
 			view.$el.change();
 			assert.equal(view.$el.val(), "1234-5678-9");
 		});
-		it("should format values from calc", function() {
+		it("should format values from fill", function() {
 			var view = new (Fluid.compileView({
 					template: "<input type='ccn' value={{val}}></input>",
-					calc: function() {return {val: "12345"}}}))();
+					fill: function() {return {val: "12345"}}}))();
 			view.update();	
 			assert.equal(view.$el.val(), "1234-5");
 		});
@@ -176,12 +176,12 @@ describe("Custome Types", function() {
 			var val = "";
 			var view = new (Fluid.compileView({
 					template: "<select type='ccn' value={{val}}}></select>",
-					calc: function() {return {val:val};},
+					fill: function() {return {val:val};},
 					noMemoize: true}))();
 			view.update();
 			$(window.document.body).append(view.$el);
 			view.$el.focus();//Log
-			val = "12345";//From calc
+			val = "12345";//From fill
 			view.update();
 			view.$el.val("LOL");//INVALID
 			view.$el.change();
@@ -192,12 +192,12 @@ describe("Custome Types", function() {
 			var val = "";
 			var view = new (Fluid.compileView({
 					template: "<input type='ccn' value={{val}}></input>",
-					calc: function() {return {val:val};},
+					fill: function() {return {val:val};},
 					noMemoize: true}))();
 			view.update();
 			$(window.document.body).append(view.$el);
 			view.$el.focus();//Log
-			val = "12345";//From calc
+			val = "12345";//From fill
 			view.update();
 			view.$el.val("LOL");//INVALID
 			view.$el.change();

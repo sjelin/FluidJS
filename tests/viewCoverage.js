@@ -13,7 +13,7 @@ describe("View Coverage", function() {
 					return n ? {a: me(me,n-1), b: me(me,n-1)} : l;
 				}));
 			var cnt = 0;
-			var view = new (Fluid.compileView({calc: function(){cnt++;}}))();
+			var view = new (Fluid.compileView({fill: function(){cnt++;}}))();
 			view.state = [bigObj];
 			for(var i = 0; i < 10; i++) {
 				view.update();
@@ -47,7 +47,7 @@ describe("View Coverage", function() {
 		var n = 0;
 		var vals = Array.prototype.slice.call(arguments, 1);
 		return new (Fluid.compileView({template: tmplt,
-			calc: function() {
+			fill: function() {
 				var ret = {};
 				if(vals.length > n)
 					ret.x = vals[n++];
@@ -59,7 +59,7 @@ describe("View Coverage", function() {
 			var view = new (Fluid.compileView({
 				template:	"<input value={{val}}></input>"+
 							"<input value={{val}}></input>",
-				calc: function() {return {val: "val"};}}))();
+				fill: function() {return {val: "val"};}}))();
 			view.update();
 			assert.equal($(view.$el[0]).val(), "val");
 			assert.equal($(view.$el[1]).val(), "val");
@@ -67,7 +67,7 @@ describe("View Coverage", function() {
 		it("should work with multiple attr cmds per var", function() {
 			var view = new (Fluid.compileView({
 				template: "<a url={{href}} href={{href}}></a>",
-				calc: function() {return {href: "www"};}}))();
+				fill: function() {return {href: "www"};}}))();
 			view.update();
 			assert.equal(view.$el.attr("href"), "www");
 			assert.equal(view.$el.attr("url"), "www");
@@ -75,7 +75,7 @@ describe("View Coverage", function() {
 		it("should work with multiple text cmds per var", function() {
 			var view = new (Fluid.compileView({
 				template: "<a>{{text}}</a><b>{{text}}</b>",
-				calc: function() {return {text: "Hello, World!"};}}))();
+				fill: function() {return {text: "Hello, World!"};}}))();
 			view.update();
 			assert.equal($(view.$el[0]).text(), "Hello, World!");
 			assert.equal($(view.$el[1]).text(), "Hello, World!");
