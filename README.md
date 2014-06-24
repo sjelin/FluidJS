@@ -490,14 +490,12 @@ reformatted result back into the input box.
 TODO
 ====
 
-1.	Allow `{{}}` injections inside of strings (e.g.
-`<a href="{{domain}}.com"></a>`).
-2.  Allow `{{}}` text node injections at any point in the DOM (i.e. remove
+1.  Allow `{{}}` text node injections at any point in the DOM (i.e. remove
 the constraint that it must be the sole content of an element).  This can be
 done by putting a `display: none` element before and after the text node,
 then searching for the text node (using `.contents()` if it isn't a root),
 and then replace the old one usings `document.createTextNode`.
-
+2.  Give option for parallelized computation of subviews
 
 Discuss
 =======
