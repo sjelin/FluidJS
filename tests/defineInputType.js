@@ -175,7 +175,7 @@ describe("Custome Types", function() {
 		it("shouldn't crash if tag doesn't support selection", function() {
 			var val = "";
 			var view = new (Fluid.compileView({
-					template: "<select type='ccn' value={{val}}}></select>",
+					template: "<select type='ccn' value={{val}}></select>",
 					fill: function() {return {val:val};},
 					noMemoize: true}))();
 			view.update();

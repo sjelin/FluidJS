@@ -101,7 +101,7 @@
 	var ctHashAttr = "__fluid__custom_type_hash";
 
 	function type_unformat(x) {
-		return (x || "").split("").filter(this.valChars).join("");
+		return ((x || "") + "").split("").filter(this.valChars).join("");
 	}
 	function type_reformat(x) {
 		return this.format(this.unformat(x));
@@ -567,15 +567,27 @@
 		var updateTime = new Date().getTime() - updateStart;
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
+	function isCheckable($elem) {
+		var inType = ((($elem[0].tagName.toUpperCase() == "INPUT") &&
+						$elem.attr("type")) || "").toUpperCase();
+		return (inType == "CHECKBOX") || (inType == "RADIO");
+	}
+	function getValue($elem) {
+		return isCheckable($elem) ? $elem[0].checked : $elem.val();
+	}
 	function setVal(view, $elem, val)
 	{
-		var ctHash = $elem.attr(ctHashAttr);
-		if(ctHash)
-			val = view.ctMap[ctHash].reformat(val);
-		if($elem.val() != val) {
-			$elem.val(val);
-			if($elem.is(":focus"))
-				setCursorPos($elem, val.length, ctHash);
+		if(isCheckable($elem))
+			$elem[0].checked = val;
+		else {
+			var ctHash = $elem.attr(ctHashAttr);
+			if(ctHash)
+				val = view.ctMap[ctHash].reformat(val);
+			if($elem.val() != val) {
+				$elem.val(val);
+				if($elem.is(":focus"))
+					setCursorPos($elem, val.length, ctHash);
+			}
 		}
 	}
 	function watch(view, sel)
@@ -594,9 +606,9 @@
 													//more listeners
 				view.ctListeners[$elem.attr(ctHashAttr)].push(send);
 			} else {
-				view.prevValues[sel] = $elem.val();
+				view.prevValues[sel] = getValue($elem);
 				var hear = function() {
-					var val = $elem.val();
+					var val = getValue($elem);
 					if(val != view.prevValues[sel])
 						send(view.prevValues[sel] = val);
 				}

@@ -48,6 +48,13 @@ describe("Views", function() {
 			view.update();
 			assert.equal(view.$el.val(), "val");
 		});
+		it("should correctly set radio's boolean a value", function() {
+			var view = new (Fluid.compileView({
+				template: "<input value={{val}} type='radio'></input>",
+				fill: function() {return {val: true};}}))();
+			view.update();
+			assert.equal(view.$el[0].checked, true);
+		});
 		it("should correctly set a property", function() {
 			var view = new (Fluid.compileView({
 				template: "<a href={{href}}></a>",
@@ -169,6 +176,13 @@ describe("Views", function() {
 				listeners: {"input": $.noop}}))();
 			view.update();
 			assert.equal(view.prevValues["input"], "val");
+		});
+		it("should convert value of checkable inputs to bools", function() {
+			var view = new (Fluid.compileView({
+				template: '<input type="radio"></input>',
+				listeners: {"input": $.noop}}))();
+			view.update();
+			assert.equal(view.prevValues["input"], false);
 		});
 		it("should accept a function which takes in the state", function() {
 			var view = new (Fluid.compileView({
