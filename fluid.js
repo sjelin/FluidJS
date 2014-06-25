@@ -101,7 +101,8 @@
 	var ctHashAttr = "__fluid__custom_type_hash";
 
 	function type_unformat(x) {
-		return ((x || "") + "").split("").filter(this.valChars).join("");
+		return ((x || "") + "").split("").filter(function(x) {
+			return !this.formatChars(x)}.bind(this)).join("");
 	}
 	function type_reformat(x) {
 		return this.format(this.unformat(x));
@@ -122,14 +123,14 @@
 			typeAttr = "text";
 
 		for(var i = 0; i < 3; i++) {
-			var k = ["validate", "format", "valChars"][i];
+			var k = ["validate", "format", "formatChars"][i];
 			if((typeof props[k] == "object")&&!(props[k] instanceof RegExp))
 				props[k] = props[k][typeAttr]
 		}
-		var valChars =	props.valChars instanceof RegExp ?
-							props.valChars.test.bind(props.valChars) :
-						props.valChars instanceof Function ? props.valChars:
-						function() {return true;};
+		var formatChars=props.formatChars instanceof RegExp ?
+							props.formatChars.test.bind(props.formatChars) :
+						props.formatChars instanceof Function ?
+							props.formatChars : function() {return false;};
 		return customTypes[typeName] = { //Return for testing reasons
 			attr: typeAttr,
 			validate:	props.validate instanceof RegExp ?
@@ -138,13 +139,13 @@
 						function() {return true;},
 			format:		props.format instanceof Function ? props.format :
 						function(x) {return x;},
-			valChars:	valChars,
+			formatChars:formatChars,
 			unformat:	type_unformat,
 			reformat:	type_reformat
 		};
 	};
 
-	//TODO remove when jsdom fixes get pushed
+	//TODO remove ignore when jsdom fixes get pushed
 	/* istanbul ignore next */
 	function setCursorPos($elem, start, end, ctHash)
 	{
@@ -169,7 +170,7 @@
 		} catch(ex) {}
 	}
 
-	//TODO remove when jsdom fixes get pushed
+	//TODO remove ignore when jsdom fixes get pushed
 	/* istanbul ignore next */
 	function getTextSel($elem) {
 		var elem = $elem[0];
@@ -195,22 +196,36 @@
 			view.ctCursorPos[hash] = getTextSel($elem);
 	}
 
+	//TODO remove ignore when jsdom fixes get pushed
 	/* istanbul ignore next */
-	function transIndex(valChars, index, src, dest) {
+	function transIndex(formatChars, index, src, dest) {
 		var valCharsToPass = 0;
 		var i;
 		for(i = 0; i < index; i++)
-			if(valChars(src[i]))
+			if(!formatChars(src[i]))
 				valCharsToPass++;
 		for(i = 0; (i < dest.length) && (valCharsToPass > 0); i++)
-			if(valChars(dest[i]))
+			if(!formatChars(dest[i]))
 				valCharsToPass--;
-		while((i < dest.length) && !valChars(dest[i]))
+		while((i < dest.length) && formatChars(dest[i]))
 			i++;
 		return i;
 	}
 
-	/* istanbul ignore next */
+	function needsReformat(curr, frmt, cursor, formatChars) {
+		while((cursor > 0) && formatChars(curr[cursor-1]))
+			cursor--;
+		if(curr.slice(0, cursor) != frmt.slice(0, cursor))
+			return true;
+		curr = curr.slice(cursor);
+		while((curr.length > 0) && formatChars(curr[0]))
+			curr = curr.slice(1);
+		frmt = frmt.slice(cursor);
+		while((frmt.length > 0) && formatChars(frmt[0]))
+			frmt = frmt.slice(1);
+		return curr != frmt;
+	}
+
 	function ctKeyListener(view, hash, $elem) {
 		var curr = $elem.val();
 		var prev = view.prevValues[hash];
@@ -220,6 +235,8 @@
 			if(!type.validate(val)) {
 				//Revert
 				$elem.val(prev);
+				//TODO remove ignore when jsdom fixes get pushed
+				/* istanbul ignore if */
 				if($elem.is(":focus"))
 					setCursorPos($elem,	view.ctCursorPos[hash].s,
 										view.ctCursorPos[hash].e);
@@ -231,14 +248,16 @@
 						listeners[i](val);
 				}
 				var fVal = type.format(val);
-				if($elem.val() != fVal) {
+				if(needsReformat($elem.val(), fVal, $elem.is(":focus") ?
+						getTextSel($elem).s : $elem.val().length,
+						type.formatChars)) {
 					//Reformat
 					var newTextSel = undefined;
 					if($elem.is(":focus")) {
 						var sel = getTextSel($elem);
 						newTextSel = {
-							s: transIndex(type.valChars, sel.s, curr, fVal),
-							e: transIndex(type.valChars, sel.e, curr, fVal)};
+							s: transIndex(type.formatChars,sel.s,curr,fVal),
+							e: transIndex(type.formatChars,sel.e,curr,fVal)};
 					}
 					$elem.val(fVal);
 					if(newTextSel != undefined)

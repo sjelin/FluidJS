@@ -15,7 +15,7 @@ describe("Custome Types", function() {
 				assert.equal(type.format(x), x);
 			}
 			for(var i = 0; i < 10; i++)
-				assert.ok(type.valChars(
+				assert.ok(!type.formatChars(
 									Math.random().toString(36).slice(2,1)));
 		});
 		it("should use a typeAttr from the list",function(){
@@ -47,21 +47,21 @@ describe("Custome Types", function() {
 			var type = Fluid.defineInputType("x", {format: {x: $}});
 			assert.strictEqual(type.format, $);
 		});
-		it("should correctly install an valChars function", function() {
-			var type = Fluid.defineInputType("", {valChars: $});
-			assert.strictEqual(type.valChars, $);
+		it("should correctly install an formatChars function", function() {
+			var type = Fluid.defineInputType("", {formatChars: $});
+			assert.strictEqual(type.formatChars, $);
 		});
-		it("should correctly install an valChars RegEx", function() {
-			var type = Fluid.defineInputType("", {valChars: /h/});
-			assert.ok(type.valChars("h"));
-			assert.ok(!type.valChars("w"));
+		it("should correctly install an formatChars RegEx", function() {
+			var type = Fluid.defineInputType("", {formatChars: /h/});
+			assert.ok(type.formatChars("h"));
+			assert.ok(!type.formatChars("w"));
 		});
 		it("should correctly pick a value character set from obj",function(){
-			var type = Fluid.defineInputType("x", {valChars: {x: $}});
-			assert.strictEqual(type.valChars, $);
+			var type = Fluid.defineInputType("x", {formatChars: {x: $}});
+			assert.strictEqual(type.formatChars, $);
 		});
 		it("should correctly create unformat function", function() {
-			var type = Fluid.defineInputType("", {valChars: /h/});
+			var type = Fluid.defineInputType("", {formatChars: /[^h]/});
 			assert.equal(type.unformat("hello"), "h");
 			assert.equal(type.unformat("world"), "");
 		});
@@ -70,14 +70,12 @@ describe("Custome Types", function() {
 		beforeEach(function() {
 			Fluid.defineInputType("r", {typeAttr: "radio"});
 			Fluid.defineInputType("num", {validate: /^[0-9]*$/});
-			Fluid.defineInputType("num2", {valChars: /[0-9]/});
+			Fluid.defineInputType("num2", {formatChars: /[^0-9]/});
 			Fluid.defineInputType("ccn", {format: function(x) {
-				if(!x)
-					return "";
-				for(var i = 4; i < x.length; i += 5)
+				for(var i = 4; i <= x.length; i += 5)
 					x = x.slice(0,i)+"-"+x.slice(i);
 				return x;
-			}, valChars: /[^-]/});
+			}, formatChars: /-/});
 		});
 		function makeView(type, val, listen) {
 			var props = {template: "<input"+
@@ -119,6 +117,9 @@ describe("Custome Types", function() {
 		});
 		it("should format new values", function() {
 			var view = makeView("ccn", "12345");
+			view.$el.val("1234");
+			view.$el.change();
+			assert.equal(view.$el.val(), "1234");
 			view.$el.val("123456789");
 			view.$el.change();
 			assert.equal(view.$el.val(), "1234-5678-9");

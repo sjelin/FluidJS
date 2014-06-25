@@ -432,7 +432,7 @@ Fluid.defineInputType("type-name", {
 	typeAttr: /* Array of strings */,
 	validate: /* Function or RegExp or Object of the two */,
 	format: /* Function or Object of Functions */,
-	valChars: /* Function or RegExp or Object or the two */
+	formatChars: /* Function or RegExp or Object or the two */
 });
 ```
 All properties are optional.
@@ -440,9 +440,9 @@ All properties are optional.
 `typeAttr` is a list of values to use for the tag's `type` property.  Values
 to the front of the list will be tried first.  If none of the values in the
 list are supported, `"text"` is used.  By default, this property is an array
-containing just the `type-name`.  if `validate`, `format` and/or `valChars`
-object, then that object will be used to select a validator/formater/value
-character set based on which type attribute is actually used.
+containing just the `type-name`.  if `validate`, `format` and/or
+`formatChars` object, then that object will be used to select a validator/
+formater/format character set based on which type attribute is actually used.
 
 
 `validate` is used to check if an input is valid.  If it is a regex, then
@@ -451,9 +451,9 @@ passed into the function, must cause the function to return a truthy value.
 By default, this propert is `function() {return true;}`
 
 `format` is used to format an input so that it will be displayed in a better
-format.  `valChars` is used to determine which characters are actually part
-of the element's value vs just used for formatting.  For instance, you might
-define a fallback implementation for telephone numbers as follows:
+format.  `formatChars` is used to determine which characters are just being
+used for formatting vs being part of the element's value.  For instance, you
+might define a fallback implementation for telephone numbers as follows:
 
 ```js
 Fluid.defineInputType("tel", {
@@ -477,13 +477,13 @@ Fluid.defineInputType("tel", {
 		else
 			return "("+val.slice(0,3)+") "+val.slice(3,3)+"-"+val.slice(7);
 	},
-	valChars: /[0-9]/
+	formatChars: /[() -]/
 });
 ```
 
 What will happen here is that when the user changes the input box, and `tel`
 is not supported by the browser, then Fluid.js will first strip out any
-characters not matched by `valChars`, then check this stripped value against
+characters matched by `formatChars`, then check this stripped value against
 `validate`, and then finally run `format` on the stripped value and put the
 reformatted result back into the input box.
 
