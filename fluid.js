@@ -631,6 +631,7 @@
 					if(val != view.prevValues[sel])
 						send(view.prevValues[sel] = val);
 				}
+				$elem.on("input", hear);
 				$elem.keypress(hear);
 				$elem.keydown(hear);
 				$elem.keyup(hear);
@@ -740,6 +741,7 @@
 				$el.val(this.ctMap[hash].reformat($el.val()));
 				var keyListener = ctKeyListener.bind(null,this,hash,$el);
 				var clickListener = ctLogCursor.bind(null,this,hash,$el);
+				$el.on("input", keyListener);
 				$el.keypress(keyListener);
 				$el.keydown(keyListener);
 				$el.keyup(keyListener);
