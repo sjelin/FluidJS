@@ -212,7 +212,7 @@
 		return i;
 	}
 
-	function needsReformat(curr, frmt, cursor, formatChars) {
+	function needsRefrmt(curr, frmt, cursor, formatChars) {
 		while((cursor > 0) && formatChars(curr[cursor-1]))
 			cursor--;
 		if(curr.slice(0, cursor) != frmt.slice(0, cursor))
@@ -226,10 +226,84 @@
 		return curr != frmt;
 	}
 
+	//TODO remove ignore when jsdom fixes get pushed
+	/* istanbul ignore next */
+	function ctSpecialCaseUpdate($elem, type, cursor, curr, prev) {
+		//The only special case we have is backspace/delete keys
+		if((curr.length != prev.length-1) || (cursor.s != cursor.e))
+			return false;
+		cursor = cursor.s;
+
+		var bksp = false;
+		var del = false;
+		if(cusor == 0) {
+			if(prev.slice(1) == curr)
+				del = true;
+			else
+				return false;
+		} else if(cursor == prev.length) {
+			if(prev.slice(0, -1) == curr)
+				bksp = true;
+			else
+				return false;
+		} else {
+			if(		(prev.substr(0, cursor-1) != curr(0, cursor-1))
+					(prev.substr(cursor+1) != curr.substr(cursor)))
+				return false;
+			var p = prev.substr(cursor-1, 2);
+			var c = curr.substr(cursor-1, 1);
+			if(p[0] == c)
+				del = true;
+			else if(p[1] == c)
+				bksp = true;
+			else
+				return false;
+		}
+
+		var val = null;
+		if(bksp) {
+			while((cursor > 0) && type.formatChars(prev[cursor-1]))
+				cursor--;
+			if(cursor == 0)
+				return false;
+			val = type.unformat(prev.slice(0, cursor-1)+prev.slice(cursor));
+		} else if(del) {
+			while((cursor < prev.length) && type.formatChars(prev[cursor]))
+				cursor++;
+			if(cursor == prev.length)
+				return false;
+			val = type.unformat(prev.slice(0, cursor)+prev.slice(cursor+1));
+		}
+
+		if((val == null) || type.validate(val))
+			return false;
+		$elem.val(type.format(val));
+		return true;
+	}
+
+	function ctReformat($elem, type, curr, fVal) {
+		var sel = getTextSel($elem);
+		var focus = $elem.is(":focus");
+		if(needsRefrmt(curr,fVal,focus?sel.s:curr.length,type.formatChars)) {
+			//Reformat
+			var newTextSel = undefined;
+			if(focus) {
+				newTextSel = {
+					s: transIndex(type.formatChars, sel.s, curr, fVal),
+					e: transIndex(type.formatChars, sel.e, curr, fVal)
+				};
+			}
+			$elem.val(fVal);
+			if(newTextSel != undefined)
+				setCursorPos($elem, newTextSel.s, newTextSel.e);
+		}
+	}
+
 	function ctKeyListener(view, hash, $elem) {
 		var curr = $elem.val();
 		var prev = view.prevValues[hash];
 		if(curr != prev) {
+			var oldSel = view.ctCursorPos[hash];
 			var type = view.ctMap[hash];
 			var val = type.unformat(curr);
 			if(!type.validate(val)) {
@@ -238,32 +312,24 @@
 				//TODO remove ignore when jsdom fixes get pushed
 				/* istanbul ignore if */
 				if($elem.is(":focus"))
-					setCursorPos($elem,	view.ctCursorPos[hash].s,
-										view.ctCursorPos[hash].e);
+					setCursorPos($elem,	oldSel.s, oldSel.e);
 			} else {
+				//Reformatting and such
+				//TODO remove ignore when jsdom fixes get pushed
+				/* istanbul ignore else */
+				if(!ctSpecialCaseUpdate($elem, type, oldSel, curr, prev))
+					ctReformat($elem, type, curr, type.format(val));
+
+				curr = $elem.val();
+				val = type.unformat(curr);
+
+				//Call listeners
 				if(type.unformat(prev) != val) {
-					//Call listeners
 					var listeners = view.ctListeners[hash];
 					for(var i = 0; i < listeners.length; i++)
 						listeners[i](val);
 				}
-				var fVal = type.format(val);
-				if(needsReformat($elem.val(), fVal, $elem.is(":focus") ?
-						getTextSel($elem).s : $elem.val().length,
-						type.formatChars)) {
-					//Reformat
-					var newTextSel = undefined;
-					if($elem.is(":focus")) {
-						var sel = getTextSel($elem);
-						newTextSel = {
-							s: transIndex(type.formatChars,sel.s,curr,fVal),
-							e: transIndex(type.formatChars,sel.e,curr,fVal)};
-					}
-					$elem.val(fVal);
-					if(newTextSel != undefined)
-						setCursorPos($elem, newTextSel.s, newTextSel.e);
-				}
-				view.prevValues[hash] = $elem.val();
+				view.prevValues[hash] = curr;
 			}
 		}
 		ctLogCursor(view, hash, $elem);
