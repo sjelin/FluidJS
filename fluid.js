@@ -74,22 +74,17 @@
 
 	var extFuns = {};
 
-	Fluid.extendViews = function(funs) {
+	function wrapExtFunctions(funs, prefix) {
 		var hash = rndStr();
 		function wrap(fun) {
 			return function() {return fun.apply(this[hash], arguments)};
 		}
 		for(var name in funs)
-			funs[name] = wrap(funs[name]);
-		funs.initViewExtPrototype = function() {
-			this[hash] = function() {};
-		};
-		funs.initViewExtInstance = function() {
-			var view = this;
-			this[hash] = new this[hash]();
-			this[hash].getState = function() {return view.state};
-			this[hash].find = function(sel) {return jqFind(view.$el, sel);};
-		};
+			funs[prefix+"_"+name] = wrap(funs[name]);
+		return hash;
+	}
+
+	function addExtFunctions(funs) {
 		for(var name in funs) {
 			if(extFuns[name] == null)
 				extFuns[name] = [];
@@ -97,8 +92,30 @@
 		}
 	}
 
+	Fluid.extendViews = function(funs) {
+		var hash = wrapExtFunctions(funs, "view");
+		funs.view_initPrototype = function() {
+			this[hash] = function() {};
+		};
+		funs.view_initInstance = function() {
+			var view = this;
+			this[hash] = new this[hash]();
+			this[hash].getState = function() {return view.state};
+			this[hash].find = function(sel) {return jqFind(view.$el, sel);};
+		};
+		addExtFunctions(funs);
+	}
+
+	Fluid.extendModels = function(funs) {
+		var hash = wrapExtFunctions(funs, "model");
+		funs.model_initInstance = function() {
+			this[hash] = {};
+		};
+		addExtFunctions(funs);
+	}
+
 	function callExtFun() {
-		var view = arguments[0];
+		var thisObj = arguments[0];
 		var name;
 		var returns;
 		var args;
@@ -113,7 +130,7 @@
 		}
 		var funs = extFuns[name] || [];
 		for(var i = 0; i < funs.length; i++) {
-			var ret = funs[i].apply(view, args);
+			var ret = funs[i].apply(thisObj, args);
 			if(returns)
 				args[0] = ret;
 		}
@@ -149,7 +166,7 @@
 		return ret;
 	}
 	Fluid.newModel = function(val) {
-		var listeners = [];
+		//Make model
 		var ret = function() {
 			if(arguments.length > 0) {
 				val = arguments[0];
@@ -157,15 +174,29 @@
 			}
 			return val;
 		}
+
+		//Set Up Extensions
+		callExtFun(ret, "model_initInstance");
+		val = callExtFun.apply({}, Array.prototype.concat.apply(
+						[ret, true, "model_compile"], arguments));
+
+		//Listeners
+		var listeners = [];
 		ret.listen = listeners.push.bind(listeners);
 		ret.alert = function() {
 			for(var i = 0; i < listeners.length; i++)
 				listeners[i]();
+			callExtFun(ret, "model_alert", ret);
 		}
+
+		//Other Commands
 		ret.get = model_get;
 		ret.set = model_set;
 		ret.sub = model_sub;
 		addValSyntax(ret);
+
+		//More Extensions!
+		callExtFun(ret, "model_init", ret);
 		return ret;
 	};
 
@@ -273,8 +304,8 @@
 			this.$el = this.getFreshJQ();
 			this.vals = {};
 			this.initCnt = (this.initCnt || 0)+1;
-			callExtFun(this, "initViewExtInstance");
-			callExtFun(this, "initView");
+			callExtFun(this, "view_initInstance");
+			callExtFun(this, "view_init");
 		}
 
 		//Set values using fill()
@@ -454,7 +485,7 @@
 		this.vals = newVals;
 
 		//Control code
-		callExtFun(this, "controlView");
+		callExtFun(this, "view_control");
 		if(!inited)
 			this.addControls.apply(this, [this.$el].concat(this.state));
 		this.updateControls.apply(this,[inited,this.$el].concat(this.state));
@@ -468,33 +499,37 @@
 		if(isCheckable($elem))
 			$elem[0].checked = val;
 		else {
-			val = callExtFun(view, true, "preprocessValue", val, $elem);
+			val = callExtFun(view, true, "view_preprocessValue", val, $elem);
 			if($elem.val() != val) {
 				$elem.val(val);
-				callExtFun(view, "postValueProcessing", val, $elem);
+				callExtFun(view, "view_postValueProcessing", val, $elem);
 			}
 		}
 	}
 
 	//See README.md and the giant comment a little ways back
 	Fluid.compileView = function(props) {
-		props = props || {};
+		arguments.length = arguments.length || 1;
+		arguments[0] = props = props || {};
 		function View() {
 			this.state = Array.prototype.slice.call(arguments, 0);
 		}
 		View.prototype = new AbstractView();
+
+		//Set up prototype for extentions
+		callExtFun(View.prototype, "view_initPrototype");
+		var protoProtos = {};
+		for(var key in View.prototype)
+			protoProtos[key] = View.prototype[key].prototype;
+		callExtFun.apply({}, Array.prototype.concat.apply(
+						[protoProtos, "view_compile"], arguments));
+
+		//Load properties
 		View.prototype.fill = props.fill || function(){return new Object();};
 		View.prototype.addControls = props.addControls || function(){};
 		View.prototype.updateControls = props.updateControls || function(){};
 		View.prototype.noMemoize = !!props.noMemoize;
 		View.prototype.typeHash = rndStr();
-
-		//Set up prototype for extentions
-		callExtFun(View.prototype, "initViewExtPrototype");
-		var protoProtos = {};
-		for(var key in View.prototype)
-			protoProtos[key] = View.prototype[key].prototype;
-		callExtFun(protoProtos, "compileView", props);
 
 		//Modify Template
 		View.prototype.valCommands = {};
@@ -505,8 +540,10 @@
 		var template = props.template || "";
 
 		template =
+			//Extension Commands
+			callExtFun(protoProtos, true, "view_modifyTemplate", template
 			//Value Commands
-			template.replace(/[^\s]+=['"]{{\s*\w+\s*}}['"]/g,function(match){
+			).replace(/[^\s]+=['"]{{\s*\w+\s*}}['"]/g, function(match) {
 				var i = match.lastIndexOf('"{{');
 				if(i == -1)
 					i = match.lastIndexOf("'{{");
@@ -555,7 +592,6 @@
 				return "<span id='"+id+"' style='display: none'></span>";
 			});
 
-		template = callExtFun(protoProtos, true, "markupTemplate", template);
 
 		View.prototype.getFreshJQ = function() { return $(template); };
 

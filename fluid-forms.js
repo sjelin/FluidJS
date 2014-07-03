@@ -333,11 +333,11 @@
  *  Extend! *
 \************/
 	Fluid.extendViews({
-		compileView: function(props) {
+		compile: function(props) {
 			this.listeners = props.listeners || {};
 			this.ctMap = {};
 		},
-		markupTemplate: function(tmplt) {
+		modifyTemplate: function(tmplt) {
 			var view = this;
 			return tmplt.replace(/type=["']\s*\w*\s*["']/g, function(match) {
 					var typeStr = match.slice(6, -1).trim();
@@ -351,7 +351,7 @@
 						return match;
 			});
 		},
-		initView: function() {
+		init: function() {
 			this.vals = {};
 			this.prevValues = {};
 			this.ctListeners = {};
@@ -376,7 +376,7 @@
 				$elem.focus(clickListener);
 			}
 		},
-		controlView: function() {
+		control: function() {
 			this.listenTrgts =	this.listeners instanceof Function ?
 									this.listeners(this.getState()) :
 									this.listeners;

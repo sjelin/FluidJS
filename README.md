@@ -50,7 +50,11 @@ document.
 Models
 ======
 
-Models in Fluid.js are very minimal.  A new model is declared as follows:
+Models in Fluid.js are (by default) dumb containers.  More complex
+functionality can be added through [extensions](#extensions), though even so
+they will probably never be as sophisticated as models in something like
+Backbone.js.  A new model is declared as follows:
+
 ```js
 	var model = Fluid.newModel(init);
 ```
@@ -65,12 +69,7 @@ Once this has been done, `model` will have the following methods:
 	model.sub(prop); //Creates a submodel.  See details below
 ```
 
-Clearly there are a lot of features missing here.  Because this is a very
-early version of Fluid.js, and because the innovation is really all about the
-way the views are rendered, this very-minimal implementation of client-side
-models is being used for now.
-
-It is worth noting that the listeners are called in the order ithey are
+It is worth noting that the listeners are called in the order they are
 installed.  So if you want to add some sort of post-processing to an model,
 simply add a listener directly after declaring the model.
 
@@ -240,7 +239,6 @@ New classes of views are declared as follows:
 		fill: /* Function */,
 		addControls: /* Function */,
 		updateControls: /* Function */,
-		listeners: /* Object or Function */,
 		noMemoize: /* boolean */
 	});
 ```
@@ -258,9 +256,6 @@ variable names in the template.
 The `addControls` and `updateControls` functions are in charge of attaching
 all the relevant events to a view.  `addControls` is only called when the
 view is initialized, `updateControls` is called on every update.
-
-`listeners` is described in the [Features for Forms](#features-for-forms)
-section.
 
 The `noMemoize` property says that the MVC should always rerun the rendering
 code, even if it seems like the view is being passed the same values twice.
@@ -357,17 +352,137 @@ The parameters of `updateControls` are:
 omitted (since `setControls` is only called during initialization).  Both
 functions default to `function(){}`
 
-Features for Forms
-==================
+Extensions
+==========
 
-Fluid.js has some special features to eliminate boilerplate code when
-writing forms and transfering the data from those forms to models.
+Fluid.js allows for deeply integrated extensions.  These are done through two
+functions: `Fluid.extendViews` and `Fluid.extendModels`.
+
+## `Fluid.extendViews`
+
+The command is used as follows:
+
+```js
+Fluid.extendViews({
+	compile: /* Function */,
+	modifyTemplate: /* Function */,
+	init: /* Function */,
+	control: /* Function */,
+	preprocessValue: /* Function */,
+	postValueProcessing: /* Function */
+});
+```
+
+All properties are optional.
+
+*	`compile` is run at the start of `Fluid.compileView()`, and is passed the
+	same parameters.  Note that even though `Fluid.compileView()` only uses
+	one argument, if more are passed to it anyway, those will be seen by
+	`compile`.  What's more, since the argument which `Fluid.compileView()`
+	uses is an object, and `compile` is passed the same object, `compile` can
+	modify the argument which `Fluid.compileView()` sees. 
+*	`modifyTemplate` is also run at compile time.  It is passed exactly one
+	argument, the view's raw template (as a string).  It should then modify
+	the template and return the result.
+*	`init` is called when the view is initialized.  That is, it is called
+	when an instance of the view is first being added to the document.
+*	`control` is called at the same time as the `updateControls` function.
+*	`preprocessValue` is called directly before Fluid sets the value of an
+	element in a view.  It is passed the value and the element (as a jQuery
+	object) and should modify the value and then return the result.
+*	`postValueProcessing` is run after Fluid has modified the value of an
+	element in a view.   It is also passed the value and the element.
+
+All functions are run with a special `this` object, sandboxed from the `this`
+object used by Fluid and the `this` objects of other extensions.  Each
+instance of a view is given its own `this` object, making the `this` object
+an ideal place to put information specific to one instance of a view.
+
+
+The `this` object also has some special helper functions to expose internal
+information:
+
+*	`this.getState()` returns the list of arguments which were passed to
+	`new ViewType()`.
+*	`this.find(sel)` finds all elements in the view which match a selector
+	`sel`.
+
+On a technical note, `compile` and `modifyTemplate` are actually run with a
+`this` object which is the prototype of the `this` object used in the other
+functions, with each view type getting its own prototype.  The helper
+functions mentioned above are attached to the instance, not the prototype.
+
+I am open to adding more hooks into the system.  These are just the hooks I
+needed.  Feel free of contact me if you need more for your own extension!
+
+### Example
+
+We have included an example of `Fluid.extendViews` in `fluid-forms.js`,
+[documented below](#forms-extension).  The extension does two things: allows
+the programmer to create custom input types, and creates easy syntax for
+adding listeners to elements of a view.  Here's an overview of how it works:
+
+*	A new function, `Fluid.defineInputType`, is added by simply using
+	`Fluid.defineInputType = function(...) {...}`
+*	In `compile`, the list of listeners is extracted.  We'll call this list
+	`l`.
+*	In `modifyTemplate`, any custom types are detected.  These custom types
+	are replaced with more traditional types (so the template will work
+	properly) and the elements with custom types are marked up with special
+	tags so they can be located later by the template.
+*	In `init`, a lot of variables are initialized, and listeners are added to
+	the elements with custom types to ensure that the formatting is
+	maintained.
+*	In `control`, listeners are added to the elements in `l`.
+*	In `preprocessValue`, and formatting for elements of custom types is
+	inserted.
+*	In `postValueProcessing`, the position of the cursor is restored.
+
+## `Fluid.extendModels`
+
+The command is used as follows:
+
+```js
+Fluid.extendModels({
+	compile: /* Function */,
+	init: /* Function */,
+	alert: /* Function */,
+});
+```
+
+All properties are optional.
+
+*	`compile` is run at the start of `Fluid.newModel()`, and is passed the
+	same parameters.  Just as in `Fluid.extendViews()`, `compile` receives
+	the full argument list, not just the first one.  However, unlike
+	in `Fluid.compileView()`, the argument of `Fluid.newModel()` is generally
+	not an object.  Thus, this `compile` function is expected to return a
+	value, and that value will be used to initialize the model.
+*	`init` is called when the model is initialized, at the end of
+	`Fluid.newModel()`.  It takes in one argument, which is the model itself.
+*	`alert` is called whenever the model's `set()` or `alert()` function is
+	called, after the listeners have been invoked.  It also takes one
+	argument, which is the model itself.
+
+Just as in `Fluid.extendViews()`, these functions are run with special,
+sandboxed, per-instance `this` objects.  Unlike `Fluid.extendViews()` these
+`this` objects don't have any special funtions or prototypes.  They are just
+containers for some internal variables.
+
+Again, I am open to adding more hooks into the system.  Just contact me!
+
+Forms Extension
+===============
+
+The `fluid-forms.js` file is an extension for Fluid.js that has somefeatures
+to eliminate boilerplate code when writing forms and transfering the data
+from those forms to models.
 
 ## View `listeners`
 
-`listeners` is an optional property of `Fluid.compileView` which is used to
-add a listener to an element so that whenever that element's value changes
-that value is passed on along to a model.
+`listeners` is an optional property of the argument to `Fluid.compileView`
+which is used to add a listener to an element so that whenever that element's
+value changes that value is passed on along to a model.
 
 `listeners` should be an object, with keys corresponding to selectors for
 the relevant elements, and values corresponding to where to push the values
@@ -490,12 +605,13 @@ reformatted result back into the input box.
 TODO
 ====
 
-1.  Allow `{{}}` text node injections at any point in the DOM (i.e. remove
+1.	Create a `sync` extension for models similar to `Backbone.sync`.
+2.  Allow `{{}}` text node injections at any point in the DOM (i.e. remove
 the constraint that it must be the sole content of an element).  This can be
 done by putting a `display: none` element before and after the text node,
 then searching for the text node (using `.contents()` if it isn't a root),
 and then replace the old one usings `document.createTextNode`.
-2.  Give option for parallelized computation of subviews
+3.  Give option for parallelized computation of subviews
 
 Discuss
 =======
