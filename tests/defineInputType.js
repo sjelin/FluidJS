@@ -1,6 +1,7 @@
 var window = require("jsdom").jsdom().parentWindow;
 var $ = window.jQuery = require("jquery")(window);
 var Fluid = require("../fluid.js")(window);
+Fluid = require("../fluid-forms.js")(window, $, Fluid);
 var assert = require("assert");
 
 describe("Custome Types", function() {

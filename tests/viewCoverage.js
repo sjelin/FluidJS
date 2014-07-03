@@ -1,6 +1,7 @@
 var window = require("jsdom").jsdom().parentWindow;
 var $ = window.jQuery = require("jquery")(window);
 var Fluid = require("../fluid.js")(window);
+Fluid = require("../fluid-forms.js")(window, $, Fluid);
 var assert = require("assert");
 
 describe("View Coverage", function() {
@@ -13,7 +14,8 @@ describe("View Coverage", function() {
 					return n ? {a: me(me,n-1), b: me(me,n-1)} : l;
 				}));
 			var cnt = 0;
-			var view = new (Fluid.compileView({fill: function(){cnt++;}}))();
+			var view = new (Fluid.compileView({fill: function(){cnt++;
+												return new Object();}}))();
 			view.state = [bigObj];
 			for(var i = 0; i < 10; i++) {
 				view.update();
@@ -25,22 +27,28 @@ describe("View Coverage", function() {
 		});
 	});
 	describe("(listener)", function() {
+		function getPrevVal(view, key) {
+			for(var k in view)
+				if(view[k].prevValues != null)
+					return view[k].prevValues[key];
+			throw new Error("No Prev Values!");
+		}
 		it("should see \"\" as root elem", function() {
 			var view = new (Fluid.compileView({
 				template: '<input value="val"></input>',
 				listeners: {"": $.noop}}))();
 			view.update();
-			assert.equal(view.prevValues[""], "val");
+			assert.equal(getPrevVal(view, ""), "val");
 		});
 		it("should allow listening with null", function() {
 			var view = new (Fluid.compileView({
 				template: '<input value="val"></input>',
 				listeners: {"": null}}))();
 			view.update();
-			assert.equal(view.prevValues[""], "val");
+			assert.equal(getPrevVal(view, ""), "val");
 			view.$el.val("newVal");
 			view.$el.keydown();
-			assert.equal(view.prevValues[""], "newVal");
+			assert.equal(getPrevVal(view, ""), "newVal");
 		});
 	})
 	function view12Fact(tmplt) {

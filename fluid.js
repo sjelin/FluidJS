@@ -9,7 +9,7 @@
 		// document (such as Node.js), expose a Fluid-making factory as
 		// module.exports
 		// This accentuates the need for the creation of a real window
-		// e.g. var Fluid = require("./fluid.js")(window);
+		// e.g. var Fluid = require("./Fluid.js")(window);
 		module.exports =
 			global.document ? /* istanbul ignore next */
 					factory(global, global.jQuery || require("jquery")) :
@@ -29,7 +29,7 @@
 		/* istanbul ignore next */ window : this, function(window, $) {
 	"use strict";
 
-	var fluid = {};
+	var Fluid = {};
 
 /*****************\
  *    Helpers    *
@@ -42,6 +42,83 @@
 
 	function jqFind($el, sel) {
 		return sel == "" ? $el : $el.filter(sel).add($el.find(sel));
+	}
+
+	//Generate a random string beginning with an "_".  Collisions should
+	//never happen
+	function rndStr() {
+		//We only use six digits of Math.random().toString(36) because
+		//Math.random() is based off of random 32-bit integers in some
+		//implementations (e.g. V8)
+		return "_" +	Math.random().toString(36).substr(2,6) +
+						Math.random().toString(36).substr(2,6);
+	}
+
+	function isCheckable($elem) {
+		var inType = ((($elem[0].tagName.toUpperCase() == "INPUT") &&
+						$elem.attr("type")) || "").toUpperCase();
+		return (inType == "CHECKBOX") || (inType == "RADIO");
+	}
+
+/****************\
+ *  Fluid.utils *
+\****************/
+
+	Fluid.utils = {};
+	Fluid.utils.rndAttrName = rndStr;
+	Fluid.utils.isCheckable = isCheckable;
+
+/***********************\
+ *  Fluid.extendViews  *
+\***********************/
+
+	var extFuns = {};
+
+	Fluid.extendViews = function(funs) {
+		var hash = rndStr();
+		function wrap(fun) {
+			return function() {return fun.apply(this[hash], arguments)};
+		}
+		for(var name in funs)
+			funs[name] = wrap(funs[name]);
+		funs.initViewExtPrototype = function() {
+			this[hash] = function() {};
+		};
+		funs.initViewExtInstance = function() {
+			var view = this;
+			this[hash] = new this[hash]();
+			this[hash].getState = function() {return view.state};
+			this[hash].find = function(sel) {return jqFind(view.$el, sel);};
+		};
+		for(var name in funs) {
+			if(extFuns[name] == null)
+				extFuns[name] = [];
+			extFuns[name].push(funs[name]);
+		}
+	}
+
+	function callExtFun() {
+		var view = arguments[0];
+		var name;
+		var returns;
+		var args;
+		if(typeof arguments[1] == "string") {
+			returns = false;
+			name = arguments[1];
+			args = Array.prototype.slice.call(arguments, 2);
+		} else {
+			returns = arguments[1];
+			name = arguments[2];
+			args = Array.prototype.slice.call(arguments, 3);
+		}
+		var funs = extFuns[name] || [];
+		for(var i = 0; i < funs.length; i++) {
+			var ret = funs[i].apply(view, args);
+			if(returns)
+				args[0] = ret;
+		}
+		if(returns)
+			return args[0];
 	}
 
 /***********************\
@@ -71,7 +148,7 @@
 		addValSyntax(ret);
 		return ret;
 	}
-	fluid.newModel = function(val) {
+	Fluid.newModel = function(val) {
 		var listeners = [];
 		var ret = function() {
 			if(arguments.length > 0) {
@@ -90,249 +167,6 @@
 		ret.sub = model_sub;
 		addValSyntax(ret);
 		return ret;
-	};
-
-/***************************\
- *  Fluid.defineInputType  *
-\***************************/
-	//NOTE: the real work is done in the view code
-
-	var customTypes = {}
-	var ctHashAttr = "__fluid__custom_type_hash";
-
-	function type_unformat(x) {
-		return ((x || "") + "").split("").filter(function(x) {
-			return !this.formatChars(x)}.bind(this)).join("");
-	}
-	function type_reformat(x) {
-		return this.format(this.unformat(x));
-	}
-	fluid.defineInputType = function(typeName, props) {
-		props = props || {};
-		var typeAttr = undefined;
-		var typeAttrs = props.typeAttr || typeName;
-		if(!isArray(typeAttrs))
-			typeAttrs = [typeAttrs];
-		var $i = $("<input>");
-		for(var i = 0; !typeAttr && (i < typeAttrs.length); i++)
-			/* instanbul ignore else */
-			if($i.attr("type", typeAttrs[i]).prop("type") == typeAttrs[i])
-				typeAttr = typeAttrs[i];
-		/* istanbul ignore if */
-		if(!typeAttr)
-			typeAttr = "text";
-
-		for(var i = 0; i < 3; i++) {
-			var k = ["validate", "format", "formatChars"][i];
-			if((typeof props[k] == "object")&&!(props[k] instanceof RegExp))
-				props[k] = props[k][typeAttr]
-		}
-		var formatChars=props.formatChars instanceof RegExp ?
-							props.formatChars.test.bind(props.formatChars) :
-						props.formatChars instanceof Function ?
-							props.formatChars : function() {return false;};
-		return customTypes[typeName] = { //Return for testing reasons
-			attr: typeAttr,
-			validate:	props.validate instanceof RegExp ?
-							props.validate.test.bind(props.validate) :
-						props.validate instanceof Function ? props.validate:
-						function() {return true;},
-			format:		props.format instanceof Function ? props.format :
-						function(x) {return x;},
-			formatChars:formatChars,
-			unformat:	type_unformat,
-			reformat:	type_reformat
-		};
-	};
-
-	//TODO remove ignore when jsdom fixes get pushed
-	/* istanbul ignore next */
-	function setCursorPos($elem, start, end, ctHash)
-	{
-		if(		($elem[0] instanceof window.HTMLInputElement) ||
-				($elem[0] instanceof window.HTMLTextAreaElement)) try {
-			if(arguments.length == 2)
-				end = start;
-			start = Math.min(start, end = Math.min(end, $elem.val().length));
-			/* istanbul ignore else */
-			if(elem.setSelectionRange)
-				elem.setSelectionRange(start, end);
-			else {
-				//IE<=8
-				var rng = elem.createTextRange();
-				rng.collapse(true);
-				rng.moveStart('character', start);
-				rng.moveEnd('character', end);
-				rng.select()
-			}
-			if(ctHash)
-				view.ctCursorPos[ctHash] = {s: start, e: end};
-		} catch(ex) {}
-	}
-
-	//TODO remove ignore when jsdom fixes get pushed
-	/* istanbul ignore next */
-	function getTextSel($elem) {
-		var elem = $elem[0];
-		if(		(elem instanceof window.HTMLInputElement) ||
-				(elem instanceof window.HTMLTextAreaElement)) try {
-			/* istanbul ignore else */
-			if(elem.setSelectionRange)
-				return {s: elem.selectionStart, e: elem.selectionEnd};
-			else {
-				//IE<=8
-				var sel = document.selection.createRange();
-				var selLen = sel.text.length;
-				sel.moveStart('character', -elem.value.length);
-				var end = sel.text.length;
-				return {s: end-selLen, e: end};
-			}
-		} catch(ex) {}
-		return {s: 0, e: 0};
-	}
-
-	function ctLogCursor(view, hash, $elem) {
-		if($elem.is(":focus"))
-			view.ctCursorPos[hash] = getTextSel($elem);
-	}
-
-	//TODO remove ignore when jsdom fixes get pushed
-	/* istanbul ignore next */
-	function transIndex(formatChars, index, src, dest) {
-		var valCharsToPass = 0;
-		var i;
-		for(i = 0; i < index; i++)
-			if(!formatChars(src[i]))
-				valCharsToPass++;
-		for(i = 0; (i < dest.length) && (valCharsToPass > 0); i++)
-			if(!formatChars(dest[i]))
-				valCharsToPass--;
-		while((i < dest.length) && formatChars(dest[i]))
-			i++;
-		return i;
-	}
-
-	function needsRefrmt(curr, frmt, cursor, formatChars) {
-		while((cursor > 0) && formatChars(curr[cursor-1]))
-			cursor--;
-		if(curr.slice(0, cursor) != frmt.slice(0, cursor))
-			return true;
-		curr = curr.slice(cursor);
-		while((curr.length > 0) && formatChars(curr[0]))
-			curr = curr.slice(1);
-		frmt = frmt.slice(cursor);
-		while((frmt.length > 0) && formatChars(frmt[0]))
-			frmt = frmt.slice(1);
-		return curr != frmt;
-	}
-
-	//TODO remove ignore when jsdom fixes get pushed
-	/* istanbul ignore next */
-	function ctSpecialCaseUpdate($elem, type, cursor, curr, prev) {
-		//The only special case we have is backspace/delete keys
-		if((curr.length != prev.length-1) || (cursor.s != cursor.e))
-			return false;
-		cursor = cursor.s;
-
-		var bksp = false;
-		var del = false;
-		if(cusor == 0) {
-			if(prev.slice(1) == curr)
-				del = true;
-			else
-				return false;
-		} else if(cursor == prev.length) {
-			if(prev.slice(0, -1) == curr)
-				bksp = true;
-			else
-				return false;
-		} else {
-			if(		(prev.substr(0, cursor-1) != curr(0, cursor-1))
-					(prev.substr(cursor+1) != curr.substr(cursor)))
-				return false;
-			var p = prev.substr(cursor-1, 2);
-			var c = curr.substr(cursor-1, 1);
-			if(p[0] == c)
-				del = true;
-			else if(p[1] == c)
-				bksp = true;
-			else
-				return false;
-		}
-
-		var val = null;
-		if(bksp) {
-			while((cursor > 0) && type.formatChars(prev[cursor-1]))
-				cursor--;
-			if(cursor == 0)
-				return false;
-			val = type.unformat(prev.slice(0, cursor-1)+prev.slice(cursor));
-		} else if(del) {
-			while((cursor < prev.length) && type.formatChars(prev[cursor]))
-				cursor++;
-			if(cursor == prev.length)
-				return false;
-			val = type.unformat(prev.slice(0, cursor)+prev.slice(cursor+1));
-		}
-
-		if((val == null) || type.validate(val))
-			return false;
-		$elem.val(type.format(val));
-		return true;
-	}
-
-	function ctReformat($elem, type, curr, fVal) {
-		var sel = getTextSel($elem);
-		var focus = $elem.is(":focus");
-		if(needsRefrmt(curr,fVal,focus?sel.s:curr.length,type.formatChars)) {
-			//Reformat
-			var newTextSel = undefined;
-			if(focus) {
-				newTextSel = {
-					s: transIndex(type.formatChars, sel.s, curr, fVal),
-					e: transIndex(type.formatChars, sel.e, curr, fVal)
-				};
-			}
-			$elem.val(fVal);
-			if(newTextSel != undefined)
-				setCursorPos($elem, newTextSel.s, newTextSel.e);
-		}
-	}
-
-	function ctKeyListener(view, hash, $elem) {
-		var curr = $elem.val();
-		var prev = view.prevValues[hash];
-		if(curr != prev) {
-			var oldSel = view.ctCursorPos[hash];
-			var type = view.ctMap[hash];
-			var val = type.unformat(curr);
-			if(!type.validate(val)) {
-				//Revert
-				$elem.val(prev);
-				//TODO remove ignore when jsdom fixes get pushed
-				/* istanbul ignore if */
-				if($elem.is(":focus"))
-					setCursorPos($elem,	oldSel.s, oldSel.e);
-			} else {
-				//Reformatting and such
-				//TODO remove ignore when jsdom fixes get pushed
-				/* istanbul ignore else */
-				if(!ctSpecialCaseUpdate($elem, type, oldSel, curr, prev))
-					ctReformat($elem, type, curr, type.format(val));
-
-				curr = $elem.val();
-				val = type.unformat(curr);
-
-				//Call listeners
-				if(type.unformat(prev) != val) {
-					var listeners = view.ctListeners[hash];
-					for(var i = 0; i < listeners.length; i++)
-						listeners[i](val);
-				}
-				view.prevValues[hash] = curr;
-			}
-		}
-		ctLogCursor(view, hash, $elem);
 	};
 
 /***********************\
@@ -386,20 +220,6 @@
  *									indexed elements are raw strings, and odd
  *									indexed ones are variable names
  *
- *	ctMap	- A map from hashes to custom type objects
- *	ctListeners	- A map from hashes to functions listening to the element
- *	ctCursorPos - A map from hashes to cursor positions
- *
- *	listeners -	The function or object passed at declaration
- *	listenTrgts -	Map from selectors to places where the data needs to be
- *					pushed.  Either the same as listeners or the result of
- *					calling listeners
- *	prevValues -	Values of elements the last time they were checked.
- *					Formatted, rather than stripped, values are used.  Used
- *					so that a value will only be pushed if it is different
- *					from the last value pushed.
- *					Map from selectors or custom type hashes to values.
- *
  *	state -	The array which was last used as arguments for the fill()
  *			function.  Or, if the fill function hasn't been called yet, the
  *			array of arguments passed into the constructor.
@@ -423,7 +243,9 @@
  *		2.	Run fill()
  *		3.	Use the result of the fill function to update this.$el
  *		4.	Call addControls() and updateControls() with the correct params
- */
+ *
+ ***************************************************************************/
+
 	function AbstractView() {}
 	AbstractView.prototype.update = function(view)
 	{
@@ -450,14 +272,9 @@
 		if(!inited) {
 			this.$el = this.getFreshJQ();
 			this.vals = {};
-			this.prevValues = {};
-			this.ctListeners = {};
-			this.ctCursorPos = {};
-			for(var hash in this.ctMap) {
-				var $elem = jqFind(this.$el, '['+ctHashAttr+'="'+hash+'"]');
-				this.prevValues[hash] = $elem.val();
-				this.ctListeners[hash] = [];
-			}
+			this.initCnt = (this.initCnt || 0)+1;
+			callExtFun(this, "initViewExtInstance");
+			callExtFun(this, "initView");
 		}
 
 		//Set values using fill()
@@ -636,14 +453,8 @@
 
 		this.vals = newVals;
 
-		//Make sure all the listen stuff is up to date
-		this.listenTrgts =	this.listeners instanceof Function ?
-								this.listeners.apply(this, this.state) :
-								this.listeners;
-		for(var sel in this.listenTrgts)
-			watch(this, sel);
-
 		//Control code
+		callExtFun(this, "controlView");
 		if(!inited)
 			this.addControls.apply(this, [this.$el].concat(this.state));
 		this.updateControls.apply(this,[inited,this.$el].concat(this.state));
@@ -652,72 +463,21 @@
 		var updateTime = new Date().getTime() - updateStart;
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
-	function isCheckable($elem) {
-		var inType = ((($elem[0].tagName.toUpperCase() == "INPUT") &&
-						$elem.attr("type")) || "").toUpperCase();
-		return (inType == "CHECKBOX") || (inType == "RADIO");
-	}
-	function getValue($elem) {
-		return isCheckable($elem) ? $elem[0].checked : $elem.val();
-	}
 	function setVal(view, $elem, val)
 	{
 		if(isCheckable($elem))
 			$elem[0].checked = val;
 		else {
-			var ctHash = $elem.attr(ctHashAttr);
-			if(ctHash)
-				val = view.ctMap[ctHash].reformat(val);
+			val = callExtFun(view, true, "preprocessValue", val, $elem);
 			if($elem.val() != val) {
 				$elem.val(val);
-				if($elem.is(":focus"))
-					setCursorPos($elem, val.length, ctHash);
+				callExtFun(view, "postValueProcessing", val, $elem);
 			}
 		}
 	}
-	function watch(view, sel)
-	{
-		function send(val) {
-			var trgt = view.listenTrgts[sel] || [];
-			if(!isArray(trgt))
-				trgt = [trgt];
-			for(var i = 0; i < trgt.length; i++)
-				trgt[i](val);
-		}
-		if(!view.prevValues.hasOwnProperty(sel)) {
-			var $elem = jqFind(view.$el, sel);
-			if($elem.is("["+ctHashAttr+"]")) {
-				view.prevValues[sel] = undefined;	//We just want to stop
-													//more listeners
-				view.ctListeners[$elem.attr(ctHashAttr)].push(send);
-			} else {
-				view.prevValues[sel] = getValue($elem);
-				var hear = function() {
-					var val = getValue($elem);
-					if(val != view.prevValues[sel])
-						send(view.prevValues[sel] = val);
-				}
-				$elem.on("input", hear);
-				$elem.keypress(hear);
-				$elem.keydown(hear);
-				$elem.keyup(hear);
-				$elem.change(hear);
-			}
-		}
-	}
-	
 
-	//Generate a random string beginning with an "_".  Collisions should
-	//never happen
-	function rndStr() {
-		//We only use six digits of Math.random().toString(36) because
-		//Math.random() is based off of random 32-bit integers in some
-		//implementations (e.g. V8)
-		return "_" +	Math.random().toString(36).substr(2,6) +
-						Math.random().toString(36).substr(2,6);
-	}
 	//See README.md and the giant comment a little ways back
-	fluid.compileView = function(props) {
+	Fluid.compileView = function(props) {
 		props = props || {};
 		function View() {
 			this.state = Array.prototype.slice.call(arguments, 0);
@@ -726,17 +486,22 @@
 		View.prototype.fill = props.fill || function(){return new Object();};
 		View.prototype.addControls = props.addControls || function(){};
 		View.prototype.updateControls = props.updateControls || function(){};
-		View.prototype.listeners = props.listeners || {};
 		View.prototype.noMemoize = !!props.noMemoize;
 		View.prototype.typeHash = rndStr();
-		
+
+		//Set up prototype for extentions
+		callExtFun(View.prototype, "initViewExtPrototype");
+		var protoProtos = {};
+		for(var key in View.prototype)
+			protoProtos[key] = View.prototype[key].prototype;
+		callExtFun(protoProtos, "compileView", props);
+
 		//Modify Template
 		View.prototype.valCommands = {};
 		View.prototype.attrCommands = {};
 		View.prototype.textCommands = {};
 		View.prototype.cmplxAttrCmds = {};
 		View.prototype.viewCommands = {};
-		View.prototype.ctMap = {};
 		var template = props.template || "";
 
 		template =
@@ -788,37 +553,11 @@
 				var id = rndStr();
 				View.prototype.viewCommands[vname] = id;
 				return "<span id='"+id+"' style='display: none'></span>";
-			//Type Commands
-			}).replace(/type=["']\s*\w*\s*["']/g, function(match) {
-				var typeStr = match.slice(6, -1).trim();
-				if(customTypes[typeStr]) {
-					var type = customTypes[typeStr];
-					var hash = rndStr();
-					View.prototype.ctMap[hash] = type;
-					var q = match.slice(-1);
-					return ctHashAttr+"="+q+hash+q+" type="+q+type.attr+q;
-				} else
-					return match;
 			});
-		View.prototype.getFreshJQ = function() {
-			var $view = $(template);
-			for(var hash in this.ctMap) {
-				var $el = jqFind($view, "["+ctHashAttr+"='"+hash+"']");
-				$el.val(this.ctMap[hash].reformat($el.val()));
-				var keyListener = ctKeyListener.bind(null,this,hash,$el);
-				var clickListener = ctLogCursor.bind(null,this,hash,$el);
-				$el.on("input", keyListener);
-				$el.keypress(keyListener);
-				$el.keydown(keyListener);
-				$el.keyup(keyListener);
-				$el.change(keyListener);
-				$el.click(clickListener);
-				$el.mouseup(clickListener);
-				$el.mousedown(clickListener);
-				$el.focus(clickListener);
-			}
-			return $view;
-		};
+
+		template = callExtFun(protoProtos, true, "markupTemplate", template);
+
+		View.prototype.getFreshJQ = function() { return $(template); };
 
 		return View;
 	};
@@ -827,7 +566,7 @@
  *  Fluid.attachView  *
 \**********************/
 
-	fluid.attachView = function($elem, ViewClass) {
+	Fluid.attachView = function($elem, ViewClass) {
 		var models = Array.prototype.slice.call(arguments, 2);
 
 		//We need to be able to call the ViewClass constructor with an array
@@ -853,5 +592,5 @@
 		$elem.replaceWith(view.$el);
 	}
 
-	return fluid;
+	return Fluid;
 }));

@@ -1,6 +1,7 @@
 var window = require("jsdom").jsdom().parentWindow;
 var $ = window.jQuery = require("jquery")(window);
 var Fluid = require("../fluid.js")(window);
+Fluid = require("../fluid-forms.js")(window, $, Fluid);
 var assert = require("assert");
 
 describe("Views", function() {
@@ -113,6 +114,7 @@ describe("Views", function() {
 					;
 				if(++n == 2)
 					assert.fail(1, 2, "called fill() twice", "==");
+				return {};
 			}}))();
 			view.update();
 			view.update();
@@ -122,6 +124,7 @@ describe("Views", function() {
 			var view = new (Fluid.compileView({fill: function() {
 				if(++n == 2)
 					done();
+				return {};
 			}, noMemoize: true}))();
 			view.update();
 			view.update();
@@ -131,6 +134,7 @@ describe("Views", function() {
 			var View = Fluid.compileView({fill: function() {
 				if(++n == 2)
 					done();
+				return {};
 			}});
 			var view = new View()
 			view.update();
@@ -170,19 +174,25 @@ describe("Views", function() {
 		});
 	});
 	describe("(listeners)", function() {
+		function getPrevVal(view, key) {
+			for(var k in view)
+				if(view[k].prevValues != null)
+					return view[k].prevValues[key];
+			throw new Error("No Prev Values!");
+		}
 		it("should log initial value", function() {
 			var view = new (Fluid.compileView({
 				template: '<input value="val"></input>',
 				listeners: {"input": $.noop}}))();
 			view.update();
-			assert.equal(view.prevValues["input"], "val");
+			assert.equal(getPrevVal(view, "input"), "val");
 		});
 		it("should convert value of checkable inputs to bools", function() {
 			var view = new (Fluid.compileView({
 				template: '<input type="radio"></input>',
 				listeners: {"input": $.noop}}))();
 			view.update();
-			assert.equal(view.prevValues["input"], false);
+			assert.equal(getPrevVal(view, "input"), false);
 		});
 		it("should accept a function which takes in the state", function() {
 			var view = new (Fluid.compileView({
@@ -193,7 +203,7 @@ describe("Views", function() {
 					return ret;
 				}}))("input");
 			view.update();
-			assert.equal(view.prevValues["input"], "val");
+			assert.equal(getPrevVal(view, "input"), "val");
 		});
 		it("should note new value", function() {
 			var called = false;
@@ -207,7 +217,7 @@ describe("Views", function() {
 			view.$el.val("val");
 			view.$el.keypress();
 			assert.ok(called);
-			assert.equal(view.prevValues["input"], "val");
+			assert.equal(getPrevVal(view, "input"), "val");
 		});
 		it("should allow multiple listeners to one value", function(done) {
 			var cnt = 0;
