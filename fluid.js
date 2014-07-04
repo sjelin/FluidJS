@@ -244,7 +244,7 @@
  *				filled in by the result of fill()
  *	valCommands  -	map ("varname" -> ["idAttr"])
  *	attrCommands -	map ("varname" -> "idAttr" -> "attrToSet")
- *	textCommands -	map ("varname" -> ["idAttr"])
+ *	textCommands -	map ("idAttr" -> "varname")
  *	viewCommands -	map ("viewname" -> "id")
  *	cmplxAttrCmds -	map ("idAttr" -> cmdObj)
  *						cmdObj has the following properties:
@@ -253,6 +253,8 @@
  *									attribute.  Array of strings.  Even
  *									indexed elements are raw strings, and odd
  *									indexed ones are variable names
+ *	textNodes - map ("varname" -> [textNode])
+ *				This is set during initialization, not at compile time
  *
  *	state -	The array which was last used as arguments for the fill()
  *			function.  Or, if the fill function hasn't been called yet, the
@@ -306,7 +308,20 @@
 		if(!inited) {
 			this.$el = $(this.template);
 			this.vals = {};
-			this.initCnt = (this.initCnt || 0)+1;
+			var textNodes = this.textNodes = {};
+			//Credit to http://stackoverflow.com/questions/298750/how-do-i-select-text-nodes-with-jquery
+			var hashToVName = this.textCommands;
+			var findTextNodes = function(node) {
+				if(node.nodeType == window.Node.TEXT_NODE) {
+					var vname = hashToVName[node.nodeValue];
+					if(vname !== undefined)
+						(textNodes[vname] = textNodes[vname]||[]).push(node);
+				} else
+					for(var i = 0, len = node.childNodes.length; i<len; i++)
+						findTextNodes(node.childNodes[i]);
+			}
+			for(var i = 0; i < this.$el.length; i++)
+				findTextNodes(this.$el[i]);
 			callExtFun(this, "view_initInstance");
 			callExtFun(this, "view_init");
 		}
@@ -333,18 +348,6 @@
 				}
 		}
 
-		//Set the text of some elements using the result of fill()
-		for(var vname in this.textCommands) {
-			if(!newVals.hasOwnProperty(vname))
-				continue;
-			var val = newVals[vname];
-			if(!inited || this.vals[vname] != val) {
-				var idAttrs = this.textCommands[vname];
-				for(var i = 0; i < idAttrs.length; i++)
-					jqFind(this.$el, "["+idAttrs[i]+"]").text(val);
-			}
-		}
-
 		//Set more complex attributes using the result of fill()
 		for(var idAttr in this.cmplxAttrCmds) {
 			var cmd = this.cmplxAttrCmds[idAttr];
@@ -363,6 +366,16 @@
 				setVal(this, $elem, val);
 			else
 				$elem.attr(cmd.attr, val);
+		}
+
+		//Set the text of some elements using the result of fill()
+		for(var vname in this.textNodes) {
+			if(!newVals.hasOwnProperty(vname))
+				continue;
+			var val = newVals[vname];
+			if(!inited || this.vals[vname] != val)
+				for(var i = 0, ns = this.textNodes[vname]; i<ns.length; i++)
+					ns[i].nodeValue = val;
 		}
 
 		//Update a child view, but don't count that time towards updateTime
@@ -554,12 +567,13 @@
 			//Extension Commands
 			callExtFun(protoProtos, true, "view_modifyTemplate",
 														props.template || ""
-			//Value Commands
+			//Rewrite simple commands written in a complex way
 			).replace(/[^\s]+=['"]{{\s*\w+\s*}}['"]/g, function(match) {
 				var i = match.lastIndexOf('"{{');
 				if(i == -1)
 					i = match.lastIndexOf("'{{");
 				return match.slice(0,i) + match.slice(i+1, -1);
+			//Value Commands
 			}).replace(/value={{\s*\w+\s*}}/g, function(match) {
 				var vname = match.slice(8,-2).trim();
 				var idAttr = rndStr();
@@ -577,14 +591,6 @@
 					View.prototype.attrCommands[vname] = {};
 				View.prototype.attrCommands[vname][idAttr] = aname;
 				return idAttr;
-			//Text Commands
-			}).replace(/>\s*{{\s*\w+\s*}}\s*</g, function(match) {
-				var vname = match.slice(1, -1).trim().slice(2, -2).trim();
-				var idAttr = rndStr();
-				if(View.prototype.textCommands[vname] == null)
-					View.prototype.textCommands[vname] = [];
-				View.prototype.textCommands[vname].push(idAttr);
-				return " "+idAttr+"><";
 			//Complex Attribute Commands
 			}).replace(/[^\s]+=(?:"[^"]*?{{\s*\w+\s*}}(?:[^"]*?[^\\])?"|'[^']*?{{\s*\w+\s*}}(?:[^']*?[^\\])?')/g, function(match) {
 				var i = match.indexOf("=");
@@ -596,6 +602,14 @@
 				var id = rndStr();
 				View.prototype.cmplxAttrCmds[id] = {attr:attr,format:format};
 				return id;
+			//Text Commands
+			}).replace(/{{\s*\w+\s*}}/g, function(match) {
+				var vname = match.slice(2, -2).trim();
+				var idAttr = rndStr();
+				View.prototype.textCommands[idAttr] = vname;
+				return	"<span style='display: none'></span>" +
+							idAttr +
+						"<span style='display: none'></span>";
 			//View Commands
 			}).replace(/\[\[\s*\w+\s*\]\]/g, function(match) {
 				var vname = match.slice(2, -2).trim();

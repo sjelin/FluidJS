@@ -81,6 +81,13 @@ describe("Views", function() {
 			view.update();
 			assert.equal(view.$el.text(), "Hello, World!");
 		});
+		it("should correctly set text w/o messing with siblings", function(){
+			var view = new (Fluid.compileView({
+				template: "<a>Hello, {{text}}!</a>",
+				fill: function() {return {text: "World"};}}))();
+			view.update();
+			assert.equal(view.$el.text(), "Hello, World!");
+		});
 		it("should correctly set a sub view", function() {
 			var view = new (Fluid.compileView({
 				template: "<a>[[sub]]</a>",
@@ -104,7 +111,7 @@ describe("Views", function() {
 		it("should use memoization in most basic case", function() {
 			var n = 0;
 			var view = new (Fluid.compileView({fill: function() {
-				var loopUntil = new Date()+10;
+				var loopUntil = new Date()+100;
 				while(loopUntil > new Date())
 					;
 				if(++n == 2)

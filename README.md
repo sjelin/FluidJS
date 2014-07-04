@@ -189,9 +189,6 @@ templating language:
 
 	The above will link the inner text of a tag with the variable `varName`.
 	Not that this command cannot be used to set HTML content.  It sets text.
-	What's more, it is not possible to use this command to set the text
-	inside a tag and also have other content inside the tag.  If you are
-	using this command, this injection must be the sole contents of the tag.
 
 4.	`[[viewName]]`
 
@@ -606,12 +603,7 @@ TODO
 ====
 
 1.	Create a `sync` extension for models similar to `Backbone.sync`.
-2.  Allow `{{}}` text node injections at any point in the DOM (i.e. remove
-the constraint that it must be the sole content of an element).  This can be
-done by putting a `display: none` element before and after the text node,
-then searching for the text node (using `.contents()` if it isn't a root),
-and then replace the old one usings `document.createTextNode`.
-3.  Give option for parallelized computation of subviews
+2.  Give option for parallelized computation of subviews
 
 Discuss
 =======
