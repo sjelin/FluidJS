@@ -4,6 +4,7 @@ Simplify template syntax/remove extra markup in output
 ======================================================
 
 This could be done as follows:
+
 1.	Remove anchor at the end of child views.  This can be done by simply
 	using existing child views as anchors.  Initially you'd need some kind
 	of anchor of course, but after initialization it shouldn't be necessary.
