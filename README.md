@@ -602,10 +602,11 @@ reformatted result back into the input box.
 TODO
 ====
 
-1.	Switch to a better parser for the templates, instead of trying to use
+1.	Create a `sync` extension for models similar to `Backbone.sync`.
+2.  Give option for parallelized computation of subviews
+3.	Switch to a better parser for the templates, instead of trying to use
 	regular expressions
-2.	Create a `sync` extension for models similar to `Backbone.sync`.
-3.  Give option for parallelized computation of subviews
+4.	Allow for pre-compiled templates
 
 Discuss
 =======
