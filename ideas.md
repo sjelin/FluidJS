@@ -22,14 +22,29 @@ This could be done as follows:
 	like child views.
 3.	Strip out identifying attributes during initialization.  This can be done
 	by caching the relavant results.
-4.	Disallow `attr={{val}}` syntax
+4.	Allow the following types of commands for setting attributes:
+
+	1.	`{{name}}="val"`
+	2.	`{{name}}={{val}}`
+	3.	`{{name}}`
+	4.	`{{nameAndVal}}`
+	5.	`hello_{{world}}`
+
+	The one rule restricting these is that they must be contiguous with
+	respect to white space. Note that the last one could be something like 
+	`{{attrAndStartOfVal}}endOfVal"`
+5.	Depreciate `attr={{val}}` and `[[]]` syntax
 
 ## Pros
 
-*	Template syntax would be more consistent and would look like syntax in
-	other templating engines.
-*	Output would be easier to look at in the web inspector.  All the extra
-	markup might be confusing to people using Fluid for the first time.
+*	Template syntax would be more consistent and would look/behave like
+	syntax in other templating engines.
+*	`{{}}` would have a universal meaning of "this gets filled in"
+*	You could switch from injecting a piece of text to injecting something
+	like an image without having to change the template at all.
+*	Output would be easier to look at in the web inspector.  Currently all
+	the extra markup might be confusing to people using Fluid for the first
+	time.
 
 ## Cons
 
