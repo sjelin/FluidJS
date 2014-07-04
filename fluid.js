@@ -9,7 +9,7 @@
 		// document (such as Node.js), expose a Fluid-making factory as
 		// module.exports
 		// This accentuates the need for the creation of a real window
-		// e.g. var Fluid = require("./Fluid.js")(window);
+		// e.g. var Fluid = require("./fluid.js")(window);
 		module.exports =
 			global.document ? /* istanbul ignore next */
 					factory(global, global.jQuery || require("jquery")) :
@@ -134,8 +134,12 @@
 			if(returns)
 				args[0] = ret;
 		}
-		if(returns)
-			return args[0];
+		return args[0];
+	}
+	function callExtFunWithArgsArray() {
+		var a = Array.prototype.slice.call(arguments, 0, arguments.length-1);
+		a.push.apply(a, arguments[arguments.length-1])
+		return callExtFun.apply({}, a);
 	}
 
 /***********************\
@@ -177,8 +181,7 @@
 
 		//Set Up Extensions
 		callExtFun(ret, "model_initInstance");
-		val = callExtFun.apply({}, Array.prototype.concat.apply(
-						[ret, true, "model_compile"], arguments));
+		val = callExtFunWithArgsArray(ret, true, "model_compile", arguments);
 
 		//Listeners
 		var listeners = [];
@@ -200,9 +203,9 @@
 		return ret;
 	};
 
-/***********************\
- *  Fluid.compileView  *
-\***********************/
+/************************\
+ *  Internal View Code	*
+\************************/
 
 /****************************************************************************
  *	HOW VIEWS WORK
@@ -237,8 +240,8 @@
  *				this flag may be turned on  automatically during runtime by
  *				the MVC if the MVC decides it would be more efficient.
  *
- *	getFreshJQ -	Generates a jQuery object based on the template ready to
- *					be updated based on the results of fill()
+ *	template -	A string representation of a blank template, ready to be 
+ *				filled in by the result of fill()
  *	valCommands  -	map ("varname" -> ["idAttr"])
  *	attrCommands -	map ("varname" -> "idAttr" -> "attrToSet")
  *	textCommands -	map ("varname" -> ["idAttr"])
@@ -301,7 +304,7 @@
 		//Init
 		var inited = this.vals != null;
 		if(!inited) {
-			this.$el = this.getFreshJQ();
+			this.$el = $(this.template);
 			this.vals = {};
 			this.initCnt = (this.initCnt || 0)+1;
 			callExtFun(this, "view_initInstance");
@@ -507,27 +510,36 @@
 		}
 	}
 
+/***********************\
+ *  Fluid.compileView  *
+\***********************/
+
+	function getEmptyObj() {
+		return new Object();
+	};
+
 	//See README.md and the giant comment a little ways back
 	Fluid.compileView = function(props) {
-		arguments.length = arguments.length || 1;
-		arguments[0] = props = props || {};
 		function View() {
 			this.state = Array.prototype.slice.call(arguments, 0);
-		}
+		};
 		View.prototype = new AbstractView();
+
+		//Sanitize arguments
+		arguments.length = arguments.length || 1;
+		arguments[0] = props = props || {};
 
 		//Set up prototype for extentions
 		callExtFun(View.prototype, "view_initPrototype");
 		var protoProtos = {};
 		for(var key in View.prototype)
 			protoProtos[key] = View.prototype[key].prototype;
-		callExtFun.apply({}, Array.prototype.concat.apply(
-						[protoProtos, "view_compile"], arguments));
+		callExtFunWithArgsArray(protoProtos, "view_compile", arguments);
 
 		//Load properties
-		View.prototype.fill = props.fill || function(){return new Object();};
-		View.prototype.addControls = props.addControls || function(){};
-		View.prototype.updateControls = props.updateControls || function(){};
+		View.prototype.fill = props.fill || getEmptyObj;
+		View.prototype.addControls = props.addControls || $.noop;
+		View.prototype.updateControls = props.updateControls || $.noop
 		View.prototype.noMemoize = !!props.noMemoize;
 		View.prototype.typeHash = rndStr();
 
@@ -537,11 +549,11 @@
 		View.prototype.textCommands = {};
 		View.prototype.cmplxAttrCmds = {};
 		View.prototype.viewCommands = {};
-		var template = props.template || "";
 
-		template =
+		View.prototype.template =
 			//Extension Commands
-			callExtFun(protoProtos, true, "view_modifyTemplate", template
+			callExtFun(protoProtos, true, "view_modifyTemplate",
+														props.template || ""
 			//Value Commands
 			).replace(/[^\s]+=['"]{{\s*\w+\s*}}['"]/g, function(match) {
 				var i = match.lastIndexOf('"{{');
@@ -591,9 +603,6 @@
 				View.prototype.viewCommands[vname] = id;
 				return "<span id='"+id+"' style='display: none'></span>";
 			});
-
-
-		View.prototype.getFreshJQ = function() { return $(template); };
 
 		return View;
 	};
