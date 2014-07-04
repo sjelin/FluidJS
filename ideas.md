@@ -28,7 +28,8 @@ This could be done as follows:
 	2.	`{{name}}={{val}}`
 	3.	`{{name}}`
 	4.	`{{nameAndVal}}`
-	5.	`hello_{{world}}`
+	5.	`{{twoAttrsInOneVar}}`
+	6.	`hello_{{world}}`
 
 	The one rule restricting these is that they must be contiguous with
 	respect to white space. Note that the last one could be something like 
