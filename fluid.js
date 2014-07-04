@@ -9,7 +9,7 @@
 		// document (such as Node.js), expose a Fluid-making factory as
 		// module.exports
 		// This accentuates the need for the creation of a real window
-		// e.g. var Fluid = require("./Fluid.js")(window);
+		// e.g. var Fluid = require("./fluid.js")(window);
 		module.exports =
 			global.document ? /* istanbul ignore next */
 					factory(global, global.jQuery || require("jquery")) :
