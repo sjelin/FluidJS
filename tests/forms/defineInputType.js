@@ -1,11 +1,17 @@
 var window = require("jsdom").jsdom().parentWindow;
 var $ = window.jQuery = require("jquery")(window);
-var Fluid = require("../fluid.js")(window);
-Fluid = require("../fluid-forms.js")(window, $, Fluid);
+var Fluid = require("../../fluid.js")(window);
+Fluid = require("../../fluid-forms.js")(window, $, Fluid);
 var assert = require("assert");
 
 describe("Custome Types", function() {
 	describe("#defineInputType", function() {
+		it("shouldn't do anything if no custom types are used", function() {
+			Fluid.attachView($("<a></a>"), Fluid.compileView({
+				template: "<input value={{x}}></input>",
+				fill: function() {return {x:1};}
+			}));
+		});
 		it("should correctly default everything", function() {
 			var type = Fluid.defineInputType("");
 			assert.equal(type.attr, "text");

@@ -1,5 +1,5 @@
 var window = require("jsdom").jsdom().parentWindow;
-var Fluid = require("../fluid.js")(window);
+var Fluid = require("../../fluid.js")(window);
 var assert = require("assert");
 
 describe("Models", function() {

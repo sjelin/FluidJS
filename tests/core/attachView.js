@@ -1,6 +1,6 @@
 var window = require("jsdom").jsdom().parentWindow;
 var $ = window.jQuery = require("jquery")(window);
-var Fluid = require("../fluid.js")(window);
+var Fluid = require("../../fluid.js")(window);
 var assert = require("assert");
 
 describe("MVC", function() {

@@ -405,7 +405,7 @@ information:
 *	`this.getState()` returns the list of arguments which were passed to
 	`new ViewType()`.
 *	`this.find(sel)` finds all elements in the view which match a selector
-	`sel`.
+	`sel`.  An empty string is considered to match the root elements.
 
 On a technical note, `compile` and `modifyTemplate` are actually run with a
 `this` object which is the prototype of the `this` object used in the other
