@@ -134,8 +134,12 @@
 			if(returns)
 				args[0] = ret;
 		}
-		if(returns)
-			return args[0];
+		return args[0];
+	}
+	function callExtFunWithArgsArray() {
+		var a = Array.prototype.slice.call(arguments, 0, arguments.length-1);
+		a.push.apply(a, arguments[arguments.length-1])
+		return callExtFun.apply({}, a);
 	}
 
 /***********************\
@@ -177,8 +181,7 @@
 
 		//Set Up Extensions
 		callExtFun(ret, "model_initInstance");
-		val = callExtFun.apply({}, Array.prototype.concat.apply(
-						[ret, true, "model_compile"], arguments));
+		val = callExtFunWithArgsArray(ret, true, "model_compile", arguments);
 
 		//Listeners
 		var listeners = [];
@@ -521,8 +524,7 @@
 		var protoProtos = {};
 		for(var key in View.prototype)
 			protoProtos[key] = View.prototype[key].prototype;
-		callExtFun.apply({}, Array.prototype.concat.apply(
-						[protoProtos, "view_compile"], arguments));
+		callExtFunWithArgsArray(protoProtos, "view_compile", arguments);
 
 		//Load properties
 		View.prototype.fill = props.fill || function(){return new Object();};
