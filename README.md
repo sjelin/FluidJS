@@ -188,7 +188,7 @@ templating language:
 3.	`<tag>{{varName}}</tag>`
 
 	The above will link the inner text of a tag with the variable `varName`.
-	Not that this command cannot be used to set HTML content.  It sets text.
+	Note that this command cannot be used to set HTML content.  It sets text.
 
 4.	`[[viewName]]`
 
