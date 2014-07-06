@@ -519,25 +519,6 @@ describe("Views", function() {
 		});
 	});
 	describe("(primative edge cases)", function() {
-		it("should ignore primatives as subviews", function() {
-			var view = vf12(1);
-			chk(view, {});
-		});
-		it("should replace privatives with a subviews", function() {
-			var view = vf12(1, vf(0));
-			chk(view, {});
-			chk(view, {0: 1});
-		});
-		it("should replace privatives with a list", function() {
-			var view = vf12(1, [vf(0), vf(0)]);
-			chk(view, {});
-			chk(view, {0: 2});
-		});
-		it("should replace privatives with an object", function() {
-			var view = vf12(1, {a: vf(0), b: vf(0), c: vf(0)});
-			chk(view, {});
-			chk(view, {0: 3});
-		});
 		it("should ignore privatives in objects", function() {
 			var view = vf12({a: vf(0), b: 2}, vf(1));
 			chk(view, {0: 1});

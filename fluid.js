@@ -30,6 +30,7 @@
 	"use strict";
 
 	var Fluid = {};
+	var DEBUG = true;
 
 /*****************\
  *    Helpers    *
@@ -396,6 +397,11 @@
 			var $elem = jqFind(this.$el, "#"+this.viewCommands[vname]);
 
 			if(isArray(view)) {
+				/* istanbul ignore else */
+				if(DEBUG) {
+					for(var i = 0; i < view.length; i++)
+						this.assertIsView(view[i], vname+"["+i+"]");
+				}
 				if(inited) {
 					//Turn oldView into an array containing just old elements
 					//which should be kept & updated.  Remove all else
@@ -411,7 +417,7 @@
 					} else {
 						if(oldView instanceof AbstractView)
 							oldView.$el.remove();
-						else if(oldView instanceof Object)
+						else //Must be an object
 							for(var key in oldView)
 								if(oldView[key] instanceof AbstractView)
 									oldView[key].$el.remove(); 
@@ -443,7 +449,7 @@
 							updateView(oldView, view);
 							newVals[vname] = oldView;
 						}
-					} else if(oldView instanceof Object)
+					} else // Must be an object
 						for(var key in oldView)
 							if(oldView[key] instanceof AbstractView)
 								oldView[key].$el.remove(); 
@@ -462,7 +468,7 @@
 					} else if(oldView instanceof AbstractView) {
 						oldView.$el.remove();
 						oldView = {};
-					} else if(oldView instanceof Object) {
+					} else { // Must be an object
 						for(var k in oldView)
 							if(!(oldView[k] instanceof AbstractView))
 								oldView[k] = undefined;
@@ -495,7 +501,8 @@
 						view[key] = oldView[key];
 					}
 				}
-			}
+			} else /* istanbul ignore else */ if(DEBUG)
+				this.throwNotView(view, vname);
 		}
 
 		this.vals = newVals;
@@ -521,6 +528,18 @@
 				callExtFun(view, "view_postValueProcessing", val, $elem);
 			}
 		}
+	}
+	AbstractView.prototype.assertIsView = function(view, vname) {
+		if(!(view instanceof AbstractView))
+			this.throwNotView(view, vname);
+	}
+	AbstractView.prototype.throwNotView = function(view, vname) {
+		throw new Error("fill() returned "+vname+"="+JSON.stringify(view)+
+						" as a view\n\n"+
+						"Calling view's compiled template is:\n\t"+
+						this.template.split("\n").join("\n\t") +
+						"\nNote that compiled templates don't look exactly "+
+						"like the views original template");
 	}
 
 /***********************\
