@@ -30,7 +30,6 @@
 	"use strict";
 
 	var Fluid = {};
-	var DEBUG = true;
 
 /*****************\
  *    Helpers    *
@@ -397,11 +396,9 @@
 			var $elem = jqFind(this.$el, "#"+this.viewCommands[vname]);
 
 			if(isArray(view)) {
-				/* istanbul ignore else */
-				if(DEBUG) {
-					for(var i = 0; i < view.length; i++)
-						this.assertIsView(view[i], vname+"["+i+"]");
-				}
+				//Check Types
+				for(var i = 0; i < view.length; i++)
+					this.assertIsView(view[i], vname+"["+i+"]");
 				if(inited) {
 					//Turn oldView into an array containing just old elements
 					//which should be kept & updated.  Remove all else
@@ -501,7 +498,7 @@
 						view[key] = oldView[key];
 					}
 				}
-			} else /* istanbul ignore else */ if(DEBUG)
+			} else
 				this.throwNotView(view, vname);
 		}
 

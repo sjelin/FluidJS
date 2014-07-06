@@ -604,9 +604,10 @@ TODO
 
 1.	Create a `sync` extension for models similar to `Backbone.sync`.
 2.  Give option for parallelized computation of subviews
-3.	Switch to a better parser for the templates, instead of trying to use
+3.	Give "debug" and "product" versions of the code
+4.	Switch to a better parser for the templates, instead of trying to use
 	regular expressions
-4.	Allow for pre-compiled templates
+5.	Allow for pre-compiled templates
 
 Discuss
 =======

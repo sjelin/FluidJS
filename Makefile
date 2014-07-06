@@ -1,12 +1,7 @@
-fluid-prod.js: fluid.js
-	uglifyjs fluid.js -m -c -d DEBUG=false -o fluid-prod.js
+all: fluid.min.js fluid-forms.min.js
 
-fluid-debug.js: fluid.js
-	uglifyjs fluid.js -c -d DEBUG=true -o fluid-debug.js
+fluid.min.js: fluid.js
+	uglifyjs fluid.js -m -c -o fluid.min.js
 
-fluid-forms-prod.js: fluid-forms.js
-	uglifyjs fluid-forms.js -m -c -d DEBUG=false -o fluid-forms-prod.js
-
-fluid-forms-debug.js: fluid-forms.js
-	uglifyjs fluid-forms.js -c -d DEBUG=true -o fluid-forms-debug.js
-
+fluid-forms.min.js: fluid-forms.js
+	uglifyjs fluid-forms.js -m -c -o fluid-forms.min.js
