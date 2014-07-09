@@ -139,7 +139,7 @@
 
 		var bksp = false;
 		var del = false;
-		if(cusor == 0) {
+		if(cursor == 0) {
 			if(prev.slice(1) == curr)
 				del = true;
 			else
@@ -202,20 +202,26 @@
 		}
 	}
 
+	function revertInvalid($elem, prevVal, oldSel) {
+		$elem.val(prevVal);
+		//TODO remove ignore when jsdom fixes get pushed
+		/* istanbul ignore if */
+		if($elem.is(":focus"))
+			setCursorPos($elem,	oldSel.s, oldSel.e);
+	}
+
 	function ctKeyListener(view, hash, $elem) {
-		var curr = $elem.val();
 		var prev = view.prevValues[hash];
+		/* istanbul ignore if */
+		if(!($elem[0].validity || {valid:true}).valid)
+			return revertInvalid($elem, prev, view.ctCursorPos[hash]);
+		var curr = $elem.val();
 		if(curr != prev) {
 			var oldSel = view.ctCursorPos[hash];
 			var type = view.ctMap[hash];
 			var val = type.unformat(curr);
 			if(!type.validate(val)) {
-				//Revert
-				$elem.val(prev);
-				//TODO remove ignore when jsdom fixes get pushed
-				/* istanbul ignore if */
-				if($elem.is(":focus"))
-					setCursorPos($elem,	oldSel.s, oldSel.e);
+				revertInvalid($elem, prev, oldSel);
 			} else {
 				//Reformatting and such
 				//TODO remove ignore when jsdom fixes get pushed

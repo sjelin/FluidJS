@@ -531,12 +531,14 @@
 			this.throwNotView(view, vname);
 	}
 	AbstractView.prototype.throwNotView = function(view, vname) {
-		throw new Error("fill() returned "+vname+"="+JSON.stringify(view)+
-						" as a view\n\n"+
-						"Calling view's compiled template is:\n\t"+
-						this.template.split("\n").join("\n\t") +
-						"\nNote that compiled templates don't look exactly "+
-						"like the views original template");
+		var msg =	"fill() returned "+vname+"="+JSON.stringify(view)+" as "+
+					"a view\n\n"+
+					"Calling view's compiled template is:"+
+					"\n\t" + this.template.split("\n").join("\n\t") + "\n" +
+					"Note that compiled templates don't look exactly like " +
+					"views original template";
+		window.console.log(msg);
+		throw new TypeError(msg);
 	}
 
 /***********************\
