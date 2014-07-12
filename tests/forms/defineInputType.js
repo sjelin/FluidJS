@@ -79,7 +79,7 @@ describe("Custome Types", function() {
 			Fluid.defineInputType("num", {validate: /^[0-9]*$/});
 			Fluid.defineInputType("num2", {formatChars: /[^0-9]/});
 			Fluid.defineInputType("ccn", {format: function(x) {
-				for(var i = 4; i <= x.length; i += 5)
+				for(var i = 4; i < x.length; i += 5)
 					x = x.slice(0,i)+"-"+x.slice(i);
 				return x;
 			}, formatChars: /-/});
