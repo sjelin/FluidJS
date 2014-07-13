@@ -50,7 +50,7 @@
 
 	//TODO remove ignore when jsdom fixes get pushed
 	/* istanbul ignore next */
-	function setCursorPos($elem, start, end, ctHash)
+	function setCursorPos($elem, start, end, ctHash, view)
 	{
 		var elem = $elem[0];
 		if(		(elem instanceof window.HTMLInputElement) ||
@@ -70,7 +70,7 @@
 				rng.select()
 			}
 			if(ctHash)
-				view.ctCursorPos[ctHash] = {s: start, e: end};
+				ctLogCursor(view, hash, $elem);
 		} catch(ex) {}
 	}
 
@@ -95,9 +95,62 @@
 		return {s: 0, e: 0};
 	}
 
+	//TODO remove ignore when jsdom fixes get pushed
+	/* istanbul ignore next */
+	function sanitizeSelection(sel, oldSel, val, formatChars)
+	{
+		//Find right of the start's strip of format chars
+		var right = sel.s;
+		while((right < val.length) && formatChars(val[right]))
+			right++;
+		//Find left side of the end's strip of format chars
+		var left = sel.e;
+		while((left > 0) && formatChars(val[left-1]))
+			left--;
+
+		//CASE 0: Not touching format chars
+		if((sel.s == right) && (sel.e == left))
+			return false;
+
+		if(sel.s == sel.e) {
+			//CASE 1: Moving cursor through format chars
+			if((oldSel.s == oldSel.e) && (sel.e != oldSel.e)) {
+				if(oldSel.s == right) {
+					sel.s = sel.e = Math.max(left-1, 0);
+					return true;
+				}
+				if(oldSel.s == left) {
+					sel.s = sel.e = Math.min(right+1, val.length);
+					return true;
+				}
+			}
+
+			//CASE 2: Cursor in middle
+			if((sel.s != right) && (sel.e != left)) {
+				sel.s = sel.e = right;
+				return true;
+			}
+
+			//CASE 3: Cursor on side
+			return false;
+		} else {
+			//CASE 4: Selection
+			sel.s = right;
+			sel.e = left;
+			return true;
+		}
+	}
+
 	function ctLogCursor(view, hash, $elem) {
-		if($elem.is(":focus"))
-			view.ctCursorPos[hash] = getTextSel($elem);
+		var sel = getTextSel($elem);
+		var val = $elem.val() || "";//sanitize in case element has no value
+		//TODO remove ignore when jsdom fixes get pushed
+		/* istanbul ignore if */
+		if((view.prevValues[hash] == val) && sanitizeSelection(sel,
+				view.ctCursorPos[hash], val, view.ctMap[hash].formatChars))
+			setCursorPos($elem, sel.s, sel.e, hash, view);
+		else
+			view.ctCursorPos[hash] = sel;
 	}
 
 	//TODO remove ignore when jsdom fixes get pushed
@@ -118,7 +171,7 @@
 
 	//TODO remove ignore when jsdom fixes get pushed
 	/* istanbul ignore next */
-	function ctSpecialCaseUpdate($elem, type, cursor, curr, prev, hash) {
+	function ctSpecialCaseUpdate($elem, type, cursor, curr, prev, hash,view){
 		//The only special case we have is backspace/delete keys
 		if((curr.length != prev.length-1) || (cursor.s != cursor.e))
 			return false;
@@ -170,11 +223,11 @@
 		if((val == null) || !type.validate(val))
 			return false;
 		$elem.val(type.format(val));
-		setCursorPos($elem, cursor, cursor, hash);
+		setCursorPos($elem, cursor, cursor, hash, view);
 		return true;
 	}
 
-	function ctReformat($elem, type, curr, fVal, hash) {
+	function ctReformat($elem, type, curr, fVal, hash, view) {
 		var newTextSel = undefined;
 		if($elem.is(":focus")) {
 			var sel = getTextSel($elem);
@@ -185,7 +238,7 @@
 		}
 		$elem.val(fVal);
 		if(newTextSel != undefined)
-			setCursorPos($elem, newTextSel.s, newTextSel.e, hash);
+			setCursorPos($elem, newTextSel.s, newTextSel.e, hash, view);
 	}
 
 	function revertInvalid($elem, prevVal, oldSel) {
@@ -212,8 +265,9 @@
 				//Reformatting and such
 				//TODO remove ignore when jsdom fixes get pushed
 				/* istanbul ignore else */
-				if(!ctSpecialCaseUpdate($elem,type,oldSel,curr,prev,hash))
-					ctReformat($elem,type,curr,type.format(val),hash);
+				if(!ctSpecialCaseUpdate($elem, type, oldSel, curr, prev,
+																hash, view))
+					ctReformat($elem,type,curr,type.format(val),hash,view);
 
 				curr = $elem.val();
 				val = type.unformat(curr);
@@ -356,8 +410,8 @@
 				this.ctListeners[hash] = [];
 
 				//Add listeners for custom types
-				var keyListener = ctKeyListener.bind(null,this, hash, $elem);
-				var clickListener = ctLogCursor.bind(null,this, hash, $elem);
+				var keyListener = ctKeyListener.bind({}, this, hash, $elem);
+				var clickListener = ctLogCursor.bind({}, this, hash, $elem);
 				$elem.on("input", keyListener);
 				$elem.keypress(keyListener);
 				$elem.keydown(keyListener);
@@ -386,7 +440,7 @@
 		postValueProcessing: function(value, $elem) {	
 			if($elem.is(":focus"))
 				setCursorPos($elem, value.length, value.length,
-													$elem.attr(ctHashAttr));
+											$elem.attr(ctHashAttr), this);
 		}
 	});
 
