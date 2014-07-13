@@ -70,7 +70,7 @@
 				rng.select()
 			}
 			if(ctHash)
-				ctLogCursor(view, hash, $elem);
+				ctLogCursor(view, ctHash, $elem);
 		} catch(ex) {}
 	}
 
@@ -99,6 +99,9 @@
 	/* istanbul ignore next */
 	function sanitizeSelection(sel, oldSel, val, formatChars)
 	{
+		(window.x = window.x || []).push({s: sel.s, e: sel.e,
+											oS: oldSel.s, oE: oldSel.e});
+
 		//Find right of the start's strip of format chars
 		var right = sel.s;
 		while((right < val.length) && formatChars(val[right]))
@@ -143,7 +146,7 @@
 
 	function ctLogCursor(view, hash, $elem) {
 		var sel = getTextSel($elem);
-		var val = $elem.val() || "";//sanitize in case element has no value
+		var val = ""+$elem.val();
 		//TODO remove ignore when jsdom fixes get pushed
 		/* istanbul ignore if */
 		if((view.prevValues[hash] == val) && sanitizeSelection(sel,
@@ -254,7 +257,7 @@
 		/* istanbul ignore if */
 		if(!($elem[0].validity || {valid:true}).valid)
 			return revertInvalid($elem, prev, view.ctCursorPos[hash]);
-		var curr = $elem.val();
+		var curr = ""+$elem.val();
 		if(curr != prev) {
 			var oldSel = view.ctCursorPos[hash];
 			var type = view.ctMap[hash];
@@ -269,7 +272,7 @@
 																hash, view))
 					ctReformat($elem,type,curr,type.format(val),hash,view);
 
-				curr = $elem.val();
+				curr = ""+$elem.val();
 				val = type.unformat(curr);
 
 				//Call listeners
@@ -405,9 +408,11 @@
 			this.ctCursorPos = {};
 			for(var hash in this.ctMap) {
 				var $elem = this.find('['+ctHashAttr+'="'+hash+'"]');
-				$elem.val(this.ctMap[hash].reformat($elem.val()));
-				this.prevValues[hash] = $elem.val();
+				var val = this.ctMap[hash].reformat(""+$elem.val());
+				$elem.val(val);
+				this.prevValues[hash] = val;
 				this.ctListeners[hash] = [];
+				this.ctCursorPos[hash] = {s: val.length, e: val.length};
 
 				//Add listeners for custom types
 				var keyListener = ctKeyListener.bind({}, this, hash, $elem);
