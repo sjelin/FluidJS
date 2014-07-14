@@ -272,7 +272,11 @@
  *					of memoization, nor time spent updating child views
  *	$el -	The jQuery object which is the markup for the view.  Is undefined
  *			until update is called for the first time.
- *	update([view]) - Does the following:
+ *	update([view]) -	A wrapper for updateInner().  Exists to solve race
+ *						conditions where extensions inside updateInner()
+ *						could call update() again before it finishes the
+ *						first time.
+ *	updateInner([view]) - Does the following:
  *		1.	If the view parameter was specified, this.state = view.state
  *		2.	Unless the noMemoize flag is set, if the current state was used
  *			in the last update() call, skip the remaining steps
@@ -284,6 +288,18 @@
 
 	function AbstractView() {}
 	AbstractView.prototype.update = function(view)
+	{
+		if(this.updateQueue !== undefined)
+			this.updateQueue.push(view);
+		else {
+			this.updateQueue = [];
+			this.updateInner(view);
+			for(var i = 0; i < this.updateQueue.length; i++)
+				this.updateInner(this.updateQueue[i]);
+			this.updateQueue = undefined;
+		}
+	}
+	AbstractView.prototype.updateInner = function(view)
 	{
 		this.state = (view || {}).state || this.state;
 		if(!this.noMemoize && ((this.memoTime||0)<=(this.updateTime||0)/2)) {
@@ -514,6 +530,7 @@
 		var updateTime = new Date().getTime() - updateStart;
 		this.updateTime = ((this.updateTime || updateTime)*4+updateTime)/5;
 	}
+
 	function setVal(view, $elem, val)
 	{
 		if(isCheckable($elem))

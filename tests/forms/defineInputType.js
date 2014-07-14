@@ -144,32 +144,39 @@ describe("Custome Types", function() {
 			view.$el.change();
 			assert.equal(view.$el.val(), "123456789");
 		});
-		it("should push values to listeners", function(done) {
-			var view = makeView("num", "", function(num) {
+		it("should push init values to listeners", function(done) {
+			var view = makeView("num", "123", function(num) {
 				assert.equal(num, "123");
 				done();
 			});
+		});
+		it("should push new values to listeners", function() {
+			var nCalls = 0;
+			var view = makeView("num", "", function(num) {
+				assert.equal(num, nCalls++ ? "123" : "");
+			});
 			view.$el.val("123");
 			view.$el.change();
+			assert.equal(nCalls, 2);
 		});
 		it("shouldn't push invalid values to listeners", function() {
 			var view = makeView("num", "", function(num) {
-				assert.fail(1, 0, "==");
+				if(num.length != 0)
+					assert.fail(1, 0, "Pushed invalid value", "==");
 			});
 			view.$el.val("abc");
 			view.$el.change();
 		});
 		it("should push unformated values to listeners", function() {
-			var view = makeView("ccn", "", function(num) {
+			var view = makeView("ccn", "12-345", function(num) {
 				assert.equal(num, "12345");
 			});
-			view.$el.val("12-345");
-			view.$el.change();
 			assert.equal(view.$el.val(), "1234-5");
 		});
 		it("shouldn't push a value if unformatted it's the same", function(){
+			var cnt = 0;
 			var view = makeView("num2", "", function(num) {
-				assert.fail(1, 0, "==");
+				assert.equal(cnt++, 0);
 			});
 			view.$el.val("abc");
 			view.$el.change();

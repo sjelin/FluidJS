@@ -308,9 +308,11 @@
 			if($elem.is("["+ctHashAttr+"]")) {
 				view.prevValues[sel] = undefined;	//We just want to stop
 													//more listeners
-				view.ctListeners[$elem.attr(ctHashAttr)].push(send);
+				var hash = $elem.attr(ctHashAttr);
+				send(view.ctMap[hash].unformat($elem.val()));
+				view.ctListeners[hash].push(send);
 			} else {
-				view.prevValues[sel] = getValue($elem);
+				send(view.prevValues[sel] = getValue($elem));
 				var hear = function() {
 					var val = getValue($elem);
 					if(val != view.prevValues[sel])

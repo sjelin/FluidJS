@@ -164,5 +164,20 @@ describe("Extensions", function() {
 			Fluid.extendViews({noop: function() {}});
 			Fluid.compileView();
 		});
+		it("should allow control() to call update()", function() {
+			var Fluid = require("../../fluid.js")(window);
+			var EmptyView;
+			var view;
+			Fluid.extendViews({control: function() {
+				if(nCalls++ == 0) {
+					view.update(new EmptyView(1));
+				}
+			}});
+			EmptyView = Fluid.compileView();
+			view = new EmptyView(0);
+			var nCalls = 0;
+			view.update();
+			assert.equal(nCalls, 2);
+		});
 	});
 });
