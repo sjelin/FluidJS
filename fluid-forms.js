@@ -265,15 +265,19 @@
 			if(!type.validate(val)) {
 				revertInvalid($elem, prev, oldSel);
 			} else {
-				//Reformatting and such
-				//TODO remove ignore when jsdom fixes get pushed
-				/* istanbul ignore else */
-				if(!ctSpecialCaseUpdate($elem, type, oldSel, curr, prev,
+				var fVal = type.format(val);
+				if(fVal != curr) {
+					//Reformat
+					//TODO remove ignore when jsdom fixes get pushed
+					/* istanbul ignore else */
+					if(!ctSpecialCaseUpdate($elem, type, oldSel, curr, prev,
 																hash, view))
-					ctReformat($elem,type,curr,type.format(val),hash,view);
+						ctReformat($elem, type, curr, fVal, hash, view);
 
-				curr = ""+$elem.val();
-				val = type.unformat(curr);
+					//Refresh curr/val
+					curr = ""+$elem.val();
+					val = type.unformat(curr);
+				}
 
 				//Call listeners
 				if(type.unformat(prev) != val) {
