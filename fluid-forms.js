@@ -436,8 +436,8 @@
 		},
 		control: function() {
 			this.listenTrgts =	this.listeners instanceof Function ?
-									this.listeners(this.getState()) :
-									this.listeners;
+									this.listeners.apply(this,
+										this.getState()) : this.listeners;
 			for(var sel in this.listenTrgts)
 				watch(this, sel);
 		},
