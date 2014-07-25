@@ -3,13 +3,13 @@ This is a place for ideas for Fluid.js that aren't fully baked.
 Simplify template syntax/remove extra markup in output
 ======================================================
 
------------------------------------------------------------------------------
-| NOTE: This whole section needs to be rethought in light of the fact that	|
+| NOTE																		|
+| ------------------------------------------------------------------------- |
+| This whole section needs to be rethought in light of the fact that		|
 | `$el.before()` only changes the parents of `$el`, and even then only if	|
 | `$el` (the variable) was the result of querying the parent's children.	|
 | Thus `$el.before()` is problematic if `$el` is the result of a `filter`	|
 | command rather than a `find` command.										|
------------------------------------------------------------------------------
 
 This could be done as follows:
 
