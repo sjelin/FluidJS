@@ -193,9 +193,23 @@ templating language:
 4.	`[[viewName]]`
 
 	The above will inject the view or collection of views in the variable
-	named `viewName`.
+	named `viewName`.  Note that this command can only be used to create
+	children of some other tag.  So templates like
 
-WARNING:  Some browsers have weird ways of parsing tags like `<body>`
+	```html
+		<h1>Header</h1>
+		[[content]]
+	```
+
+		Are not allowed.  Instead, please use
+
+	```html
+		<h1>Header</h1>
+		<div>[[content]]</div>
+	```
+
+WARNING:  Some browsers have weird ways of parsing tags like `<body>`, so
+such tags are not recommended.
 
 ### Example
 
