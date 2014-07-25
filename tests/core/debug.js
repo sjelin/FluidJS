@@ -4,6 +4,13 @@ var Fluid = require("../../fluid.js")(window);
 var assert = require("assert");
 
 describe("Debug", function() {
+	describe("#compileTemplate", function() {
+		it("should not allow subview-injections in the root", function() {
+			assert.throws(function() {
+				Fluid.compileView({template: "<h1>Header</h1> [[content]]"});
+			});
+		});
+	});
 	describe("#fill", function() {
 		var EmptyView = Fluid.compileView();
 		var ViewWithKids = Fluid.compileView({
