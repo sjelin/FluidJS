@@ -201,7 +201,7 @@ templating language:
 		[[content]]
 	```
 
-		Are not allowed.  Instead, please use
+	Are not allowed.  Instead, please use
 
 	```html
 		<h1>Header</h1>
