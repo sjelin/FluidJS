@@ -1,5 +1,13 @@
 This is a place for ideas for Fluid.js that aren't fully baked.
 
+Listeners which are better targeted at submodels
+================================================
+
+You could have `model.listen(fun[, prop])`, and `model.alert([prop])`.
+Alerts would go up the tree from the targeted property to the root, and
+down the tree from the targeted property to all children.  submodels would
+then just use these functions.
+
 Simplify template syntax/remove extra markup in output
 ======================================================
 

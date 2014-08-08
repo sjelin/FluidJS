@@ -12,8 +12,6 @@ transitions and animations to be incorporated more easily.
 
 ### Features
 
-Fluid.js is:
-
 *	Lightweight (just under 10K minified, 3.5K if also zipped, only
 	dependency is [jQuery](http://http://jquery.com/))
 *	Easy to use (feels similar to Backbone.js)
@@ -21,6 +19,7 @@ Fluid.js is:
 *	Fast (automatically memoizes view updates)
 
 ### Why make another MVC?
+
 
 The animations and smooth transitions of native apps are one of the major
 factors that give them their fun, playful feel.  Webapps, in contrast,
@@ -51,11 +50,11 @@ creating the content from scratch.
 Overview
 ========
 
-Fluid.js follows the MVC model:
+Fluid.js follows the MVC structure:
 
 ![MVC Diagram](mvc.png?raw=true)
 
-However, much like Backbone.js, the line between its views and it's
+However, much like Backbone.js, the line between its views and its
 controllers is blurry.  A more complete diagram of how Fluid.js works might
 look like this:
 
@@ -64,8 +63,8 @@ look like this:
 The `fill()` function takes information which was passed to the model and
 uses it to fill in the template (more on this later).  `ctrlFuns()` doesn't
 actually refer to any specific function, but instead refers to the fact that
-a variety of functions might be used to attach events to the elements of the
-view (more on that later as well).
+a variety of functions might be used to attach events to the DOM elements in
+the view (more on that later as well).
 
 Information in Fluid.js follows the following pattern:
 
@@ -74,13 +73,13 @@ Information in Fluid.js follows the following pattern:
 As you can see, models pass their information into some Root View, and that
 Root View then passes some information along to its children, which repeat
 the process recursively.  The Root View is attached directly to the DOM,
-where as the Child Views are just attached to their parent.
+where as the child views are just attached to their parent.
 
 Example
 =======
 
 While Fluid.js is similar to Backbone.js once you understand it, it is fairly
-opaque and can be difficult to understand in the abstract.  As such, we have
+opaque and can be difficult to learn in the abstract.  As such, we have
 provided [an example](http://sjelin.github.io/FluidJS) which you can look at
 regularly when reading this document.
 
@@ -93,7 +92,7 @@ they will probably never be as sophisticated as models in something like
 Backbone.js.  A new model is declared as follows:
 
 ```js
-	var model = Fluid.newModel(init);
+	var model = Fluid.newModel(initialValue);
 ```
 
 Once this has been done, `model` will have the following methods:
@@ -111,6 +110,7 @@ installed.  So if you want to add some sort of post-processing to an model,
 simply add a listener directly after declaring the model.
 
 #### Submodels
+
 
 Let's say you create a model `person` for a person
 
@@ -149,10 +149,10 @@ In some cases it makes less sense:
 	age.set(22);//Calls updateNameDisplay
 ```
 
-Unfortunately, as javascript doesn't support deconstructors, you can't do
-much better.
+This may change in the future to make more sense.
 
 #### Alternate `set`/`get` Syntax
+
 
 Typing `model.get()` and `model.set(newVal)` can be annoying.  Especially if
 it's really more like
@@ -214,7 +214,7 @@ templating language:
 	Instead, you must use `greet='Hello, my name is "{{name}}"'`.  Note that
 	`Hello, my name's "{{name}}"` is impossible to do with this command,
 	because it uses both types of quotes.  This restriction is needed to make
-	this command detectable using regular expressions.
+	this command easily detectable using regular expressions.
 
 	Because of the above restriction, and because it is generally less
 	efficient than method 1 (including some optimizations behind the scenes),
@@ -250,10 +250,12 @@ such tags are not recommended.
 
 ### Example
 
+
 Main Template:
 
 ```html
-	[[header]]
+	
+	<div>[[header]]</div>
 	<ul class="id-cards">
 		[[idCards]]
 	</ul>
@@ -283,6 +285,7 @@ while you read this section:
 ![Fluid MVC Diagram](fluid_mvc.png?raw=true)
 
 ### Declaring new classes of views, an overview
+
 
 New classes of views are declared as follows:
 
@@ -314,12 +317,14 @@ view is initialized, `updateControls` is called on every update.
 The `noMemoize` property says that the MVC should always rerun the rendering
 code, even if it seems like the view is being passed the same values twice.
 This flag is particularly important if one of the arguments is an opaque
-object (e.g. instance of a class with private variables), because the MVC may
-not be able to detect changes in the internal state of the arguments.
+object (e.g. instance of a class with private variables), because then the
+MVC may not be able to detect changes in the internal state of the arguments.
+This flag defaults to `false`.
 
 ### The "state" of a view
 
-The state of a view is simply the information which is will be rendered based
+
+The state of a view is simply the information which it will be rendered based
 off of.  It is an array of values.  Root Views and Child Views will be
 described below, but briefly:
 
@@ -328,6 +333,7 @@ described below, but briefly:
 *	In a Child View, the state is the information passed to it by its parent
 
 ### Root Views vs Child Views
+
 
 There are two types of views: *Root Views* and *Child Views*.
 
@@ -341,7 +347,7 @@ to the leaf views (views with no children).
 
 ![Information Diagram](fluid_information_flow.png?raw=true)
 
-Root Views are attached to the DOM/models as follows:
+Root Views are attached to the DOM and their models as follows:
 
 ```js
 	Fluid.attachView($elem, ViewClass[, model1[, model2[, ...]]])
@@ -366,13 +372,14 @@ view, and `[param1, param2, ...]` is the state of the view.  Note that a new
 view is being instantiated every time `fill()` is called.  This is keeping
 with the idea that it should *feel* like you're creating the view anew on
 every update.  However, behind the scenes, Fluid.js automatically transfers
-the information from the new instance to the old one so that the content can
+the information from this new instance to the old one so that the content can
 be updated in place.
 
 To see this all in action, check out 
 [the example](http://sjelin.github.io/FluidJS).
 
 ### The `fill()` function
+
 
 The parameters of the `fill()` function are the state of the view.  The
 function then returns an object which is used to fill in the template.  The
@@ -381,6 +388,7 @@ key names in this object match the variable names in the template.
 By default, `fill()` is set to `function() {return new Object();}`
 
 #### Returning subviews
+
 
 Recall that the `[[viewName]]` syntax in the templating engine can be used to
 inject either a single view of a collection of views.  In the case of an
@@ -560,6 +568,7 @@ needed.  Feel free of contact me if you need more for your own extension!
 
 ### Example
 
+
 We have included an example of `Fluid.extendViews` in `fluid-forms.js`,
 [documented below](#forms-extension).  The extension does two things: allows
 the programmer to create custom input types, and creates easy syntax for
@@ -621,7 +630,8 @@ The `fluid-forms.js` file is an extension for Fluid.js that has some features
 to eliminate boilerplate code when writing forms and transferring the data
 from those forms to models.
 
-## View `listeners`
+### View `listeners`
+
 
 `listeners` is an optional property of the argument to `Fluid.compileView`
 which is used to add a listener to an element so that whenever that element's
@@ -656,7 +666,8 @@ as they are for the `fill()` function.
 The default value for `listeners` is `{}`.  As a special case, the empty
 string `""` is interpreted as the selector for the root of the template.
 
-## `Fluid.defineInputType`
+### `Fluid.defineInputType`
+
 
 Allows the programmer to define new types for `<input>` tags (or create
 fallback implementations for HTML5 types).  For instance, if you wanted
@@ -748,6 +759,8 @@ reformatted result back into the input box.
 TODO
 ====
 
+0.	Extensions should be better explained, with some sort of overview
+0.	Make submodel alerts make more sense
 1.	Create a `sync` extension for models similar to `Backbone.sync`.
 2.  Give option for parallelized computation of subviews
 3.	Give "debug" and "product" versions of the code
