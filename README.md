@@ -53,13 +53,13 @@ Overview
 
 Fluid.js follows the MVC model:
 
-![MVC Diagram](mvc.svg)
+![MVC Diagram](mvc.svg?raw=true)
 
 However, much like Backbone.js, the line between its views and it's
 controllers is blurry.  A more complete diagram of how Fluid.js works might
 look like this:
 
-![Fluid MVC Diagram](fluid_mvc.svg)
+![Fluid MVC Diagram](fluid_mvc.svg?raw=true)
 
 The `fill()` function takes information which was passed to the model and
 uses it to fill in the template (more on this later).  `ctrlFuns()` doesn't
@@ -69,7 +69,7 @@ view (more on that later as well).
 
 Information in Fluid.js follows the following pattern:
 
-![Information Diagram](fluid_information_flow.svg)
+![Information Diagram](fluid_information_flow.svg?raw=true)
 
 As you can see, models pass there information into some Root View, and that
 Root View then passes some information along to its children, which repeat
@@ -280,7 +280,7 @@ Views
 Please keep the folloing diagram (from the [overview](#overview)) in mind
 while you read this section:
 
-![Fluid MVC Diagram](fluid_mvc.svg)
+![Fluid MVC Diagram](fluid_mvc.svg?raw=true)
 
 ### Declaring new classes of views, an overview
 
@@ -339,7 +339,7 @@ solely on the information that their parents provide them.  Thus, information
 percolates from the models, to the Root Views, through the Child Views, down
 to the leaf views (views with no children).
 
-![Information Diagram](fluid_information_flow.svg)
+![Information Diagram](fluid_information_flow.svg?raw=true)
 
 Root Views are attached to the DOM/models as follows:
 
