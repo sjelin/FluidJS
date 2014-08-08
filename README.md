@@ -1,13 +1,26 @@
 Fluid.js
 ========
 
-Fluid.js is a new Model View Controller (MVC) designed to make it easier for
-webapps to have smooth transitions and animations.
+Fluid.js is a JavaScript Model View Controller (MVC) designed to make it
+easier for webapps to have smooth transitions and animations.
 
-This is only a very early version of the MVC, intended primarily as a proof
-of concept.
+Fluid.js takes heavy inspiration from
+[Backbone.js](http://http://backbonejs.org/), and is similar in usage.
+However, where as MVCs like Backbone.js discard old content whenever the 
+models change, Fluid.js simply updates the old content.  This allows CSS
+transitions & animations to be incorporated more easily.
 
-### Why?
+### Features
+
+Fluid.js is:
+
+*	Lightweight (just under 10K minified, 3.5K if also zipped, only
+	dependency is [jQuery](http://http://jquery.com/))
+*	Easy to use (feels similar to Backbone.js)
+*	Highly extensible
+*	Fast (automatically memoizes view updates)
+
+### Why make another MVC?
 
 The animations and smooth transitions of native apps are one of the major
 factors that give them their fun, playful feel.  Webapps, in contrast,
@@ -32,20 +45,44 @@ replaced.  Instead, for these CSS features to be truly effective, the old DOM
 content needs to be updated instead of replaced.
 
 The goal of this project is to build an MVC that works by updating content
-instead of replacing it, but is still just as easy to work with as an MVC
-which creates the content from scratch each time.
+instead of replacing it, but from a programing POV still *feels* like you're
+creating the content from scratch.
+
+Overview
+========
+
+Fluid.js follows the MVC model:
+
+![MVC Diagram](mvc.svg)
+
+However, much like Backbone.js, the line between its views and it's
+controllers is blurry.  A more complete diagram of how Fluid.js works might
+look like this:
+
+![Fluid MVC Diagram](fluid_mvc.svg)
+
+The `fill()` function takes information which was passed to the model and
+uses it to fill in the template (more on this later).  `ctrlFuns()` doesn't
+actually refer to any specific function, but instead refers to the fact that
+a variety of functions might be used to attach events to the elements of the
+view (more on that later as well).
+
+Information in Fluid.js follows the following pattern:
+
+![Information Diagram](fluid_information_flow.svg)
+
+As you can see, models pass there information into some Root View, and that
+Root View then passes some information along to its children, which repeat
+the process recursively.  The Root View is attached directly to the DOM,
+where as the Child Views are just attached to their parent.
 
 Example
 =======
 
-Fluid.js is unfortunately very opaque about how it works.  You just kind of
-have to trust that the APIs do what they say and not worry about "how."  This
-is unfortunately necessary in order to hide the complexity of updating DOM
-elements instead of recreating them.
-
-Because of this complexity, we suggest that you look at
-[our example](http://sjelin.github.io/FluidJS) regularly when reading this
-document.
+While Fluid.js is similar to Backbone.js once you understand it, it is fairly
+opaque and can be difficult to understand in the abstract.  As such, we have
+provided [an example](http://sjelin.github.io/FluidJS) which you can look at
+regularly when reading this document.
 
 Models
 ======
@@ -151,9 +188,9 @@ Templating
 
 Fluid.js is tightly coupled to a templating engine.  The reason for this is
 that more so than other MVCs Fluid.js needs to really understand how a
-template works so that in can update the produced dynamically instead of
+template works so that in can update the product dynamically instead of
 having to re-run the template from scratch.  Additionally, the templating
-language for Fluid.js needs to be able to express concepts like child views
+language for Fluid.js needs to be able to express concepts like Child Views
 instead of just raw HTML injections.  Finally, Fuild.js needs to have
 explicit and limited syntax in its templating language so that content can be
 quickly understood and updated.
@@ -208,7 +245,7 @@ templating language:
 		<div>[[content]]</div>
 	```
 
-WARNING:  Some browsers have weird ways of parsing tags like `<body>`, so
+**WARNING:**  Some browsers have weird ways of parsing tags like `<body>`, so
 such tags are not recommended.
 
 ### Example
@@ -240,6 +277,11 @@ ID Card Template:
 Views
 =====
 
+Please keep the folloing diagram (from the [overview](#overview)) in mind
+while you read this section:
+
+![Fluid MVC Diagram](fluid_mvc.svg)
+
 ### Declaring new classes of views, an overview
 
 New classes of views are declared as follows:
@@ -256,11 +298,12 @@ New classes of views are declared as follows:
 
 All the properties in the above code are optional.
 
-The `template` property is the template for the view.
+The `template` property is the template for the view.  The default template
+is `""`.
 
 The `fill` property is the function which computes the values that are used
 to fill in the template.  This job includes passing the relevant information
-along to child views.  Once these values are computed, they are returned in
+along to Child Views.  Once these values are computed, they are returned in
 the form of an object, where the key names in the object line up with the
 variable names in the template.
 
@@ -274,6 +317,16 @@ This flag is particularly important if one of the arguments is an opaque
 object (e.g. instance of a class with private variables), because the MVC may
 not be able to detect changes in the internal state of the arguments.
 
+### The "state" of a view
+
+The state of a view is simply the information which is will be rendered based
+off of.  It is an array of values.  Root Views and Child Views will be
+described below, but briefly:
+
+*	In a Root View, the state is simply an array containing the values of the
+	models it is based off of
+*	In a Child View, the state is the information passed to it by its parent
+
 ### Root Views vs Child Views
 
 There are two types of views: *Root Views* and *Child Views*.
@@ -283,80 +336,159 @@ to the DOM, and are rendered according to information coming directly from
 models.  *Child Views* on the other hand, have a parent view.  They are
 linked to the DOM only through their parent view, and are rendered based
 solely on the information that their parents provide them.  Thus, information
-percolates from the models, to the root views, through the child views, down
+percolates from the models, to the Root Views, through the Child Views, down
 to the leaf views (views with no children).
 
-Root views are attached to the DOM/models as follows:
+![Information Diagram](fluid_information_flow.svg)
+
+Root Views are attached to the DOM/models as follows:
 
 ```js
 	Fluid.attachView($elem, ViewClass[, model1[, model2[, ...]]])
 ```
 
-Where `$elem` is an object which will be replaced by the root view,
-`ViewClass` is the class of the root view, and `model1, model2, ...` are the
-models which the root view will be based off of.
+Where `$elem` is an object which will be replaced by the Root View,
+`ViewClass` is the class of the view, `model1, model2, ...` are the models
+which the view will be based off of, and `[model1.get(), models2.get(), ...]`
+is the state of the view.  Note that `Fluid.attachView()` takes a view class,
+not a view instance, as its second parameter.
 
-Child views are attached to their parent during the `fill` function through
+Child Views are attached to their parent during the `fill()` function through
 commands like the following:
 
 ```js
 	ret.childView = new ViewClass([param1[, param2[, ...]]]);
 ```
 
-Where `ret` is the object which `fill` will return, `childView` is the name
-of the child view in the template, `ViewClass` is the class of the child
-view, and `param1, param2, ...` is the information which the child view will
-be based off.
+Where `ret` is the object which `fill()` will return, `childView` is the name
+of the Child View in the template, `ViewClass` is the class of the child
+view, and `[param1, param2, ...]` is the state of the view.  Note that a new
+view is being instantiated every time `fill()` is called.  This is keeping
+with the idea that it should *feel* like you're creating the view anew on
+every update.  However, behind the scenes, Fluid.js automatically transfers
+the information from the new instance to the old one so that the content can
+be updated in place.
 
 To see this all in action, check out 
 [the example](http://sjelin.github.io/FluidJS).
 
-### Declaring new classes of view, details
+### The `fill()` function
 
-#### `template`
+The parameters of the `fill()` function are the state of the view.  The
+function then returns an object which is used to fill in the template.  The
+key names in this object match the variable names in the template.
 
-By default, this is `""`
+By default, `fill()` is set to `function() {return new Object();}`
 
-#### The `fill` function
+#### Returning subviews
 
-If the view is a root view, then the parameters to the `fill` function are
-the values of the models which the view is being based on.  If the view is
-a child view, then the parameters to the `fill` function are the values which
-were passed to it by its parent's `fill` function.
+Recall that the `[[viewName]]` syntax in the templating engine can be used to
+inject either a single view of a collection of views.  In the case of an
+individual view, you would simply write:
 
-A collection of views can either be an array or an object.  By default, if a
-collection is an object, the order in which the views are inserted into the
-parent view is not well definied, and may even change over time as the parent
-view is updated.  If you would like the order to be consistant, you can
-specify the `__SORT__` property, which will sort the object's keys before
-using them.  You can use any truthy value for `__SORT__`, but if you use a
-function then that function will be used as the compare function for the
-sort.  Otherwise, keys are sorted by each character's Unicode code point
-value, according to the string conversion of the key.
+```js
+	ret.viewName = new ViewClass([param1[, param2[, ...]]]);
+```
+
+A collection of views can either be an array or an object.  In the case of an
+array, you would write:
+
+```js
+	ret.viewName = [
+						new ViewClass1([param1[, param2[, ...]]]),
+						new ViewClass2([param1[, param2[, ...]]]),
+						...
+					]
+```
+
+In the case of an object, you would write:
+
+```js
+	ret.viewName = {
+						key1: new ViewClass1([param1[, param2[, ...]]]),
+						key2: new ViewClass2([param1[, param2[, ...]]]),
+						...
+					}
+```
+
+##### When to use Arrays vs Objects
+
+Using an array has the advantage that it's easy to use and the resulting
+order is explicit.  However, there is a potential problem with using arrays.
+Suppose I had the following code:
+
+```js
+	ret.users = [new User("Alice"), new User("Bob"), new User("Carol")];
+```
+
+And then on some future call of `fill()` I decided to delete `Bob`:
+
+```js
+	ret.users = [new User("Alice"), new User("Carol")];
+```
+
+While our intent was to have `Bob` removed from the DOM, Fluid would
+misinterpret this as "the third user should be removed, and the second user's
+name should be changed to 'Carol'".  The way around this problem is to use
+objects.  We would have started off with:
+
+```js
+	ret.users = {
+					a: new User("Alice"),
+					b: new User("Bob"),
+					c: new User("Carol")
+				};
+```
+
+And then changed to:
+
+```js
+	ret.users = {
+					a: new User("Alice"),
+					c: new User("Carol")
+				};
+```
+
+Fluid would be able to tell that `Bob` should be removed because his key name
+was removed from the object.
+
+##### Sorting objects
+
+By default, if a collection is an object, the order in which the views are
+inserted into the parent view is not well definied, and may even change over
+time as the parent view is updated.  If you would like the order to be
+consistant, you can specify the `__SORT__` property, which will sort the
+object's keys before using them.  You can use any truthy value for
+`__SORT__`, but if you use a function then that function will be used as the
+compare function for the sort.  Otherwise, keys are sorted by each
+character's Unicode code point value, according to the string conversion of
+the key.
+
+#### Missing properties
 
 If the returned object is missing a property needed to fill in the template,
 then that part of the template will not be updated.  For instance, if the
 template says an input box should be filled in by the `val` property, but the
-`val` property is missing from the object returned by `fill`, then whatever
+`val` property is missing from the object returned by `fill()`, then whatever
 the user has typed into the input box will be left alone.  Note that there is
 a difference between a property being set to `undefined` and the property
 not being specified.
 
-Primarily, the properties of the object returned by the `fill` function are
+#### Reserved properties
+
+Primarily, the properties of the object returned by the `fill()` function are
 used directly to fill in the template.  However, there may be special
 properties in the future.
 
-By default, `fill` is set to `function() {return new Object();}`
-
-#### The `addControls` and `updateControls` functions
+### The `addControls` and `updateControls` functions
 
 The parameters of `updateControls` are:
 
 1. `true` iff the view has already been initialized
 2. The jQuery object representing representing this view
-3. The first parameter to the `fill` function, if one exists
-4. The second parameter to the `fill` function, if one exists
-5. The third parameter to the `fill` function, if one exists
+3. The first element of the state
+4. The second element of the state
+5. The third element of the state
 6. Etc.
 
 `setControls` has the same parameters, except for the first one, which is
@@ -519,7 +651,7 @@ pushed to functions:
 
 Also, `listeners` can be a function returning an object rather than an
 object directly.  In that case, the parameters to the function are the same
-as they are for the `fill` function.
+as they are for the `fill()` function.
 
 The default value for `listeners` is `{}`.  As a special case, the empty
 string `""` is interpreted as the selector for the root of the template.
