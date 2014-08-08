@@ -6,9 +6,9 @@ easier for webapps to have smooth transitions and animations.
 
 Fluid.js takes heavy inspiration from
 [Backbone.js](http://http://backbonejs.org/), and is similar in usage.
-However, where as MVCs like Backbone.js discard old content whenever the 
+However, whereas MVCs like Backbone.js discard old content whenever the 
 models change, Fluid.js simply updates the old content.  This allows CSS
-transitions & animations to be incorporated more easily.
+transitions and animations to be incorporated more easily.
 
 ### Features
 
@@ -71,7 +71,7 @@ Information in Fluid.js follows the following pattern:
 
 ![Information Diagram](fluid_information_flow.png?raw=true)
 
-As you can see, models pass there information into some Root View, and that
+As you can see, models pass their information into some Root View, and that
 Root View then passes some information along to its children, which repeat
 the process recursively.  The Root View is attached directly to the DOM,
 where as the Child Views are just attached to their parent.
@@ -112,7 +112,7 @@ simply add a listener directly after declaring the model.
 
 #### Submodels
 
-Let's say you create a model `person` for an person
+Let's say you create a model `person` for a person
 
 ```js
 	var person = Fluid.newModel({name: 'Joe', age: 21});
@@ -191,11 +191,11 @@ that more so than other MVCs Fluid.js needs to really understand how a
 template works so that in can update the product dynamically instead of
 having to re-run the template from scratch.  Additionally, the templating
 language for Fluid.js needs to be able to express concepts like Child Views
-instead of just raw HTML injections.  Finally, Fuild.js needs to have
+instead of just raw HTML injections.  Finally, Fluid.js needs to have
 explicit and limited syntax in its templating language so that content can be
 quickly understood and updated.
 
-In that vain, there are four ways to inject values/views in Fluid.js'
+In that vein, there are four ways to inject values/views in Fluid.js'
 templating language:
 
 1.	`<tag attr={{varName}}>`
@@ -277,7 +277,7 @@ ID Card Template:
 Views
 =====
 
-Please keep the folloing diagram (from the [overview](#overview)) in mind
+Please keep the following diagram (from the [overview](#overview)) in mind
 while you read this section:
 
 ![Fluid MVC Diagram](fluid_mvc.png?raw=true)
@@ -455,9 +455,9 @@ was removed from the object.
 ##### Sorting objects
 
 By default, if a collection is an object, the order in which the views are
-inserted into the parent view is not well definied, and may even change over
+inserted into the parent view is not well defined, and may even change over
 time as the parent view is updated.  If you would like the order to be
-consistant, you can specify the `__SORT__` property, which will sort the
+consistent, you can specify the `__SORT__` property, which will sort the
 object's keys before using them.  You can use any truthy value for
 `__SORT__`, but if you use a function then that function will be used as the
 compare function for the sort.  Otherwise, keys are sorted by each
@@ -609,7 +609,7 @@ All properties are optional.
 
 Just as in `Fluid.extendViews()`, these functions are run with special,
 sandboxed, per-instance `this` objects.  Unlike `Fluid.extendViews()` these
-`this` objects don't have any special funtions or prototypes.  They are just
+`this` objects don't have any special functions or prototypes.  They are just
 containers for some internal variables.
 
 Again, I am open to adding more hooks into the system.  Just contact me!
@@ -617,8 +617,8 @@ Again, I am open to adding more hooks into the system.  Just contact me!
 Forms Extension
 ===============
 
-The `fluid-forms.js` file is an extension for Fluid.js that has somefeatures
-to eliminate boilerplate code when writing forms and transfering the data
+The `fluid-forms.js` file is an extension for Fluid.js that has some features
+to eliminate boilerplate code when writing forms and transferring the data
 from those forms to models.
 
 ## View `listeners`
@@ -669,7 +669,7 @@ Fluid.defineInputType("integer", {
 });
 ```
 
-When Fluid.js was parsing a template, if it encounted an input tag with
+When Fluid.js was parsing a template, if it encountered an input tag with
 `type="integer"`, it would do the following:
 
 *	See if the input type `"integer"` is supported.  If not, try `"number"`.
@@ -700,13 +700,13 @@ to the front of the list will be tried first.  If none of the values in the
 list are supported, `"text"` is used.  By default, this property is an array
 containing just the `type-name`.  if `validate`, `format` and/or
 `formatChars` object, then that object will be used to select a validator/
-formater/format character set based on which type attribute is actually used.
+formatter/format character set based on which type attribute is actually used.
 
 
 `validate` is used to check if an input is valid.  If it is a regex, then
 the input much match that regex.  If it is a function, then that input, when
 passed into the function, must cause the function to return a truthy value.
-By default, this propert is `function() {return true;}`
+By default, this property is `function() {return true;}`
 
 `format` is used to format an input so that it will be displayed in a better
 format.  `formatChars` is used to determine which characters are just being
