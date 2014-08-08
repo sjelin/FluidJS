@@ -553,7 +553,7 @@
 					"Calling view's compiled template is:"+
 					"\n\t" + this.template.split("\n").join("\n\t") + "\n" +
 					"Note that compiled templates don't look exactly like " +
-					"views original template";
+					"view's original template";
 		window.console.log(msg);
 		throw new TypeError(msg);
 	}
